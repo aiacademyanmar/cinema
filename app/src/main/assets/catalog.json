@@ -65,14 +65,15 @@
     "subtitle": "Documentary channel",
     "category": "YouTube",
     "genre": "Documentary",
-    "url": "https://www.youtube.com/@DWDocumentary",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=DWDocumentary",
+    "kind": "youtube",
     "accent": "#397C8C",
     "badge": "DOCU",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@DWDocumentary"
   },
   {
     "id": "demo-youtube-02",
@@ -80,14 +81,15 @@
     "subtitle": "Discovery channel directory",
     "category": "YouTube",
     "genre": "Discovery",
-    "url": "https://www.youtube.com/@discovery",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=discovery",
+    "kind": "youtube",
     "accent": "#315B8A",
     "badge": "DISCOVERY",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@discovery"
   },
   {
     "id": "demo-youtube-03",
@@ -95,14 +97,15 @@
     "subtitle": "History channel directory",
     "category": "YouTube",
     "genre": "History",
-    "url": "https://www.youtube.com/@HISTORY",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=HISTORY",
+    "kind": "youtube",
     "accent": "#80602C",
     "badge": "HISTORY",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@HISTORY"
   },
   {
     "id": "demo-youtube-04",
@@ -110,14 +113,15 @@
     "subtitle": "Nature documentary channel",
     "category": "YouTube",
     "genre": "Nature",
-    "url": "https://www.youtube.com/@bbcearth",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=bbcearth",
+    "kind": "youtube",
     "accent": "#2D7759",
     "badge": "NATURE",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@bbcearth"
   },
   {
     "id": "demo-short-01",
@@ -125,14 +129,15 @@
     "subtitle": "Short film channel",
     "category": "Shorts",
     "genre": "Short Films",
-    "url": "https://www.youtube.com/@Omeleto",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=Omeleto",
+    "kind": "youtube",
     "accent": "#4C477F",
     "badge": "SHORTS",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@Omeleto"
   },
   {
     "id": "demo-short-02",
@@ -140,14 +145,15 @@
     "subtitle": "Short film channel",
     "category": "Shorts",
     "genre": "Short Films",
-    "url": "https://www.youtube.com/@shortoftheweek",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=shortoftheweek",
+    "kind": "youtube",
     "accent": "#574A83",
     "badge": "SHORTS",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@shortoftheweek"
   },
   {
     "id": "demo-youtube-05",
@@ -155,14 +161,15 @@
     "subtitle": "Nature, science and exploration channel",
     "category": "YouTube",
     "genre": "Nature",
-    "url": "https://www.youtube.com/@NatGeo",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=NatGeo",
+    "kind": "youtube",
     "accent": "#2D7759",
     "badge": "NATGEO",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@NatGeo"
   },
   {
     "id": "demo-youtube-06",
@@ -170,14 +177,15 @@
     "subtitle": "Documentary channel directory",
     "category": "YouTube",
     "genre": "Documentary",
-    "url": "https://www.youtube.com/@FreeDocumentary",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=FreeDocumentary",
+    "kind": "youtube",
     "accent": "#397C8C",
     "badge": "DOCU",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@FreeDocumentary"
   },
   {
     "id": "demo-youtube-07",
@@ -185,14 +193,15 @@
     "subtitle": "Science and space channel",
     "category": "YouTube",
     "genre": "Science",
-    "url": "https://www.youtube.com/@pbsspacetime",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=pbsspacetime",
+    "kind": "youtube",
     "accent": "#315B8A",
     "badge": "SCIENCE",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@pbsspacetime"
   },
   {
     "id": "demo-youtube-08",
@@ -200,14 +209,15 @@
     "subtitle": "Science-fiction short film channel",
     "category": "Shorts",
     "genre": "Sci-Fi Shorts",
-    "url": "https://www.youtube.com/@watchdust",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=watchdust",
+    "kind": "youtube",
     "accent": "#4C477F",
     "badge": "SCI-FI",
     "language": "English",
     "rights": "Official channel link",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@watchdust"
   },
   {
     "id": "demo-youtube-09",
@@ -215,14 +225,15 @@
     "subtitle": "Movie recap creator channel",
     "category": "Shorts",
     "genre": "Movie Recaps",
-    "url": "https://www.youtube.com/@mixcubemovierecap",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=mixcubemovierecap",
+    "kind": "youtube",
     "accent": "#574A83",
     "badge": "RECAP",
     "language": "မြန်မာ / English",
-    "rights": "Creator channel link; third-party clip rights not verified",
+    "rights": "YouTube creator channel uploads; playback remains inside the official YouTube embedded player; individual video rights remain with the uploader.",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@mixcubemovierecap"
   },
   {
     "id": "demo-youtube-10",
@@ -230,14 +241,15 @@
     "subtitle": "Myanmar movie recap creator channel",
     "category": "Shorts",
     "genre": "Myanmar Recaps",
-    "url": "https://www.youtube.com/@myanmartawywarofficial",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=myanmartawywarofficial",
+    "kind": "youtube",
     "accent": "#8A3048",
     "badge": "MM RECAP",
     "language": "မြန်မာ",
-    "rights": "Creator channel link; third-party clip rights not verified",
+    "rights": "YouTube creator channel uploads; playback remains inside the official YouTube embedded player; individual video rights remain with the uploader.",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@myanmartawywarofficial"
   },
   {
     "id": "demo-youtube-11",
@@ -245,14 +257,15 @@
     "subtitle": "Myanmar creator channel reference",
     "category": "Shorts",
     "genre": "Myanmar Recaps",
-    "url": "https://www.youtube.com/@ewyyworld",
-    "kind": "link",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=ewyyworld",
+    "kind": "youtube",
     "accent": "#6B315C",
     "badge": "MM VIDEO",
     "language": "မြန်မာ",
-    "rights": "Creator channel link; third-party clip rights not verified",
+    "rights": "YouTube creator channel uploads; playback remains inside the official YouTube embedded player; individual video rights remain with the uploader.",
     "featured": false,
-    "posterUrl": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=640&q=82"
+    "posterUrl": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=640&q=82",
+    "channelUrl": "https://www.youtube.com/@ewyyworld"
   },
   {
     "id": "open-film-bbb-01",
@@ -270,5 +283,41 @@
     "posterUrl": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=640&q=82",
     "year": "2008",
     "credits": "© copyright 2008, Blender Foundation / www.bigbuckbunny.org"
+  },
+  {
+    "id": "demo-youtube-12",
+    "title": "British Pathé",
+    "subtitle": "History films, newsreels and archive documentaries",
+    "category": "YouTube",
+    "genre": "History",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=britishpathe",
+    "kind": "youtube",
+    "accent": "#9B7A43",
+    "badge": "OFFICIAL YOUTUBE",
+    "language": "English / captions vary",
+    "rights": "Official British Pathé channel; ALL RIGHTS RESERVED. Playback through YouTube only; do not download or re-host.",
+    "featured": true,
+    "posterUrl": "https://i.ytimg.com/vi/DMP8ctjk6TQ/hqdefault.jpg",
+    "year": "Official Channel",
+    "credits": "British Pathé",
+    "channelUrl": "https://www.youtube.com/@britishpathe"
+  },
+  {
+    "id": "demo-youtube-13",
+    "title": "NASA",
+    "subtitle": "Space exploration, science films and mission documentaries",
+    "category": "YouTube",
+    "genre": "Science",
+    "url": "https://www.youtube.com/embed?listType=user_uploads&list=NASA",
+    "kind": "youtube",
+    "accent": "#245A9B",
+    "badge": "OFFICIAL YOUTUBE",
+    "language": "English / captions vary",
+    "rights": "Official NASA channel; check each video's third-party footage and music rights. Playback through YouTube only.",
+    "featured": true,
+    "posterUrl": "https://i.ytimg.com/vi/21X5lGlDOfg/hqdefault.jpg",
+    "year": "Official Channel",
+    "credits": "NASA",
+    "channelUrl": "https://www.youtube.com/@NASA"
   }
 ]
