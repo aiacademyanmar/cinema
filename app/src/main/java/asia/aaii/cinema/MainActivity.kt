@@ -1096,15 +1096,15 @@ private fun PlayerScreen(
     onProgress: (Long, Long) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     if (item.kind == "youtube") {
         YouTubePlayerScreen(
             item = item,
             onBack = onBack,
-            onOpenChannel = { item.channelUrl?.let { openOfficial(LocalContext.current, it) } }
+            onOpenChannel = { item.channelUrl?.let { openOfficial(context, it) } }
         )
         return
     }
-    val context = LocalContext.current
     var playbackError by remember(item.url) { mutableStateOf<String?>(null) }
     var showSettings by remember(item.id) { mutableStateOf(false) }
     var subtitleChoice by remember(item.id) { mutableStateOf("Off") }
