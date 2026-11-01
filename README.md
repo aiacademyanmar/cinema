@@ -12,6 +12,19 @@
 - Scope includes Myanmar Movie Recap, Myanmar Learning, English History, Sports, Science & Documentary, plus a sourced Myanmar Drama series playlist.
 - Existing 15 YouTube channel upload references remain in the catalog; channel handle embeds may still require future account/channel-ID verification.
 
+## V2.7 Final QA — source safety patch
+
+After CI build and catalog inspection:
+- 120 total catalog entries, including 100 playlist entries.
+- 20 sourced playlist IDs are **not yet verified live or embeddable**.
+- 80 YouTube Playlist discovery search links are deliberately external only.
+- The 15 earlier YouTube `user_uploads` entries were made official external channel links because their supplied handle strings are not verified YouTube usernames for the `user_uploads` player mode.
+- Playlist IDs are validated to use `listType=playlist` and `PL...` IDs in CI preflight.
+- The HTML YouTube embed base URL now uses `https://aaii.asia/` (real product domain), not a placeholder domain; Samsung WebView referrer, fullscreen, error 153, caption tracks and actual playback remain untested on-device.
+- Crash Course Economics reclassified as English Learning instead of Myanmar Learning.
+
+**This is not 100 verified streams.** Real link/metadata availability, title mapping, ownership, geographic playback, embedding permissions, caption tracks, player fullscreen, back navigation and Samsung runtime are PENDING.
+
 ## Native YouTube playback
 
 - Sourced YouTube playlist IDs use official YouTube embedded player URLs with `listType=playlist`.
