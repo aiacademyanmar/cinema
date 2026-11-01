@@ -1,9 +1,9 @@
-name: Build AAII Cinema V2.2 Native APK
+name: Build AAII Cinema V2.3 Native APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main, master, v2.3-development]
 
 permissions:
   contents: read
@@ -63,13 +63,13 @@ jobs:
         run: |
           test -s app/build/outputs/apk/debug/app-debug.apk
           sha256sum app/build/outputs/apk/debug/app-debug.apk | tee APK_SHA256.txt
-          echo '### AAII CINEMA V2.2 native APK compiled' >> "$GITHUB_STEP_SUMMARY"
+          echo '### AAII CINEMA V2.3 native APK compiled' >> "$GITHUB_STEP_SUMMARY"
           cat APK_SHA256.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload installable debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AAII-CINEMA-V2.2-DEBUG-APK
+          name: AAII-CINEMA-V2.3-DEBUG-APK
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             APK_SHA256.txt
@@ -80,7 +80,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: AAII-CINEMA-V2.2-BUILD-LOG
+          name: AAII-CINEMA-V2.3-BUILD-LOG
           path: build-log.txt
           if-no-files-found: ignore
           retention-days: 7

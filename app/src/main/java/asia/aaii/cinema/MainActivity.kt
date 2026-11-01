@@ -8,6 +8,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -46,6 +48,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.text.Normalizer
+import java.util.Locale
 import java.util.UUID
 
 private val bg = Color(0xFF0B0811)
@@ -91,6 +96,174 @@ private fun safeTelegramUrl(value: String): String? = runCatching {
 }.getOrNull()
 
 private val tgGenres = listOf("Movies", "Short Films", "Documentary", "Discovery", "History", "TV", "Other")
+
+private data class TelegramImportBatch(
+    val items: List<CinemaItem>,
+    val duplicates: Int,
+    val rejected: Int
+)
+
+private fun readLimitedText(context: Context, uri: Uri): String? = runCatching {
+    context.contentResolver.openInputStream(uri)?.use { input ->
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            if (output.size() + count > 1_000_000) return@runCatching null
+            output.write(buffer, 0, count)
+        }
+        String(output.toByteArray(), Charsets.UTF_8)
+    }
+}.getOrNull()
+
+private fun parseCsvRows(text: String): List<List<String>> {
+    val rows = mutableListOf<List<String>>()
+    var cells = mutableListOf<String>()
+    val cell = StringBuilder()
+    var quoted = false
+    var i = 0
+    while (i < text.length) {
+        val c = text[i]
+        when (c) {
+            '"' -> {
+                if (quoted && i + 1 < text.length && text[i + 1] == '"') {
+                    cell.append('"')
+                    i++
+                } else {
+                    quoted = !quoted
+                }
+            }
+            ',' -> if (quoted) cell.append(c) else {
+                cells.add(cell.toString().trim())
+                cell.setLength(0)
+            }
+            '\n', '\r' -> if (quoted) cell.append(c) else {
+                if (c == '\r' && i + 1 < text.length && text[i + 1] == '\n') i++
+                cells.add(cell.toString().trim())
+                if (cells.any { it.isNotBlank() }) rows.add(cells)
+                cells = mutableListOf()
+                cell.setLength(0)
+            }
+            else -> cell.append(c)
+        }
+        i++
+    }
+    cells.add(cell.toString().trim())
+    if (cells.any { it.isNotBlank() }) rows.add(cells)
+    return rows
+}
+
+private fun firstJsonText(obj: JSONObject, vararg keys: String): String {
+    for (key in keys) {
+        val value = obj.optString(key).trim()
+        if (value.isNotEmpty() && value != "null") return value
+    }
+    return ""
+}
+
+/**
+ * Imports public Telegram channel/post references only.
+ * Supported CSV headers: title,url,genre (name/link/category aliases also work).
+ * Supported JSON: an array, { "items": [...] }, { "links": [...] }, or one record.
+ * Private t.me/c links and invite links are rejected by safeTelegramUrl().
+ */
+private fun parseTelegramImport(source: String, existingUrls: Set<String>): TelegramImportBatch {
+    val candidates = mutableListOf<Triple<String, String, String>>()
+    var rejected = 0
+    val trimmed = source.trim().removePrefix("\uFEFF").trim()
+    if (trimmed.isEmpty()) return TelegramImportBatch(emptyList(), 0, 0)
+
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+        val array = if (trimmed.startsWith("[")) {
+            JSONArray(trimmed)
+        } else {
+            val root = JSONObject(trimmed)
+            root.optJSONArray("items") ?: root.optJSONArray("links") ?: JSONArray().apply {
+                if (root.has("url") || root.has("link") || root.has("telegramUrl")) put(root)
+            }
+        }
+        val limit = minOf(array.length(), 500)
+        if (array.length() > limit) rejected += array.length() - limit
+        for (index in 0 until limit) {
+            val obj = array.optJSONObject(index)
+            if (obj == null) {
+                rejected++
+                continue
+            }
+            candidates.add(
+                Triple(
+                    firstJsonText(obj, "title", "name", "channel", "channel_title"),
+                    firstJsonText(obj, "url", "link", "telegramUrl", "telegram_url"),
+                    firstJsonText(obj, "genre", "category")
+                )
+            )
+        }
+    } else {
+        val rows = parseCsvRows(trimmed)
+        if (rows.isEmpty()) return TelegramImportBatch(emptyList(), 0, 0)
+        val headers = rows.first().map { it.trim().removePrefix("\uFEFF").lowercase(Locale.ROOT) }
+        val titleIndex = headers.indexOfFirst { it in setOf("title", "name", "channel", "channel_title") }
+        val urlIndex = headers.indexOfFirst { it in setOf("url", "link", "telegramurl", "telegram_url") }
+        val genreIndex = headers.indexOfFirst { it in setOf("genre", "category") }
+        if (titleIndex < 0 || urlIndex < 0) {
+            return TelegramImportBatch(emptyList(), 0, (rows.size - 1).coerceAtLeast(1))
+        }
+        val dataRows = rows.drop(1)
+        val limit = minOf(dataRows.size, 500)
+        if (dataRows.size > limit) rejected += dataRows.size - limit
+        for (row in dataRows.take(limit)) {
+            candidates.add(
+                Triple(
+                    row.getOrNull(titleIndex).orEmpty(),
+                    row.getOrNull(urlIndex).orEmpty(),
+                    row.getOrNull(genreIndex).orEmpty()
+                )
+            )
+        }
+    }
+
+    val seen = existingUrls.toMutableSet()
+    val imported = mutableListOf<CinemaItem>()
+    var duplicates = 0
+    for ((rawTitle, rawUrl, rawGenre) in candidates) {
+        val title = rawTitle.trim().take(85)
+        val url = safeTelegramUrl(rawUrl)
+        if (title.isBlank() || url == null) {
+            rejected++
+            continue
+        }
+        if (!seen.add(url)) {
+            duplicates++
+            continue
+        }
+        val genre = tgGenres.firstOrNull { it.equals(rawGenre.trim(), ignoreCase = true) } ?: "Other"
+        imported.add(
+            CinemaItem(
+                id = "tg-" + UUID.randomUUID(),
+                title = title,
+                subtitle = "Imported public Telegram channel / post",
+                category = "Telegram",
+                genre = genre,
+                url = url,
+                kind = "link",
+                accent = "#2796B2",
+                badge = "TELEGRAM",
+                language = "မြန်မာ / English",
+                rights = "External link only · streaming rights not verified",
+                featured = false
+            )
+        )
+    }
+    return TelegramImportBatch(imported, duplicates, rejected)
+}
+
+private fun normalizeSearch(value: String): String =
+    Normalizer.normalize(value, Normalizer.Form.NFKC)
+        .lowercase(Locale.ROOT)
+        .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+        .trim()
+        .replace(Regex("\\s+"), " ")
 
 private fun readTelegramLinks(context: Context): List<CinemaItem> = runCatching {
     val prefs = context.getSharedPreferences("aaii_cinema_v1", Context.MODE_PRIVATE)
@@ -161,7 +334,7 @@ private fun CinemaApp() {
     val builtInCatalog = remember { readItems(context) }
     val prefs = remember { context.getSharedPreferences("aaii_cinema_v1", Context.MODE_PRIVATE) }
     val telegramSources = remember { mutableStateListOf<CinemaItem>().apply { addAll(readTelegramLinks(context)) } }
-    val catalog = builtInCatalog + telegramSources
+    val catalog = remember(builtInCatalog, telegramSources.toList()) { builtInCatalog + telegramSources }
     val saved = remember {
         mutableStateListOf<String>().apply { addAll(prefs.getStringSet("saved", emptySet()).orEmpty()) }
     }
@@ -176,6 +349,27 @@ private fun CinemaApp() {
     var telegramUrl by remember { mutableStateOf("") }
     var telegramGenre by remember { mutableStateOf("Movies") }
     var telegramError by remember { mutableStateOf("") }
+    var telegramImportStatus by remember { mutableStateOf("") }
+
+    val telegramImportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val raw = readLimitedText(context, uri)
+            if (raw == null) {
+                telegramImportStatus = "File မဖတ်နိုင်ပါ သို့မဟုတ် 1 MB ထက်ကြီးနေပါသည်။"
+            } else {
+                val batch = runCatching {
+                    parseTelegramImport(raw, telegramSources.map { it.url }.toSet())
+                }.getOrElse { TelegramImportBatch(emptyList(), 0, 1) }
+                if (batch.items.isNotEmpty()) {
+                    telegramSources.addAll(batch.items)
+                    persistTelegramLinks(context, telegramSources)
+                }
+                telegramImportStatus = "Added ${batch.items.size} · Duplicate ${batch.duplicates} · Rejected ${batch.rejected}"
+            }
+        }
+    }
 
     fun toggle(item: CinemaItem) {
         if (saved.contains(item.id)) saved.remove(item.id) else saved.add(item.id)
@@ -248,7 +442,7 @@ private fun CinemaApp() {
                     IconButton(onClick = { tab = "Search"; query = ""; genre = "All" }) {
                         Icon(Icons.Filled.Search, contentDescription = "Open Search", tint = fg)
                     }
-                    Text("V2.2", color = gold, fontSize = 10.sp)
+                    Text("V2.3", color = gold, fontSize = 10.sp)
                 }
             }
 
@@ -280,17 +474,31 @@ private fun CinemaApp() {
             )
             Spacer(Modifier.height(12.dp))
             if (tab == "Telegram") {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Archive references · membership may be required", color = muted, fontSize = 11.sp)
-                    Button(
-                        onClick = { showTelegramEditor = true; telegramError = "" },
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
-                    ) { Icon(Icons.Filled.Add, null, Modifier.size(16.dp)); Text(" Add Link", fontSize = 11.sp) }
+                    Text("Public channel references · private /c/ links are not imported", color = muted, fontSize = 11.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                telegramImportStatus = ""
+                                telegramImportLauncher.launch(arrayOf("text/*", "application/json"))
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) { Text("Import CSV / JSON", fontSize = 10.sp, maxLines = 1) }
+                        OutlinedButton(
+                            onClick = { showTelegramEditor = true; telegramError = "" },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) { Icon(Icons.Filled.Add, null, Modifier.size(15.dp)); Text(" Add Link", fontSize = 10.sp) }
+                    }
+                    if (telegramImportStatus.isNotBlank()) {
+                        Text(telegramImportStatus, color = gold, fontSize = 10.sp, lineHeight = 15.sp)
+                    }
                 }
             }
 
@@ -301,9 +509,20 @@ private fun CinemaApp() {
                 "Movies" -> catalog.filter { it.category == "Movies" || (it.category == "Telegram" && it.genre.endsWith("Series")) }
                 else -> catalog.filter { it.category == tab }
             }
+            val searchIndex = remember(catalog) {
+                catalog.associate { item ->
+                    item.id to normalizeSearch(
+                        listOf(item.title, item.subtitle, item.genre, item.language, item.category).joinToString(" ")
+                    )
+                }
+            }
+            val normalizedQuery = remember(query) { normalizeSearch(query) }
+            val queryTerms = remember(normalizedQuery) { normalizedQuery.split(" ").filter { it.isNotBlank() } }
             val searched = source.filter { item ->
-                query.isBlank() || listOf(item.title, item.subtitle, item.genre, item.language)
-                    .any { it.contains(query, ignoreCase = true) }
+                if (normalizedQuery.isBlank()) true else {
+                    val haystack = searchIndex[item.id].orEmpty()
+                    haystack.contains(normalizedQuery) || queryTerms.all { haystack.contains(it) }
+                }
             }
             val genres = listOf("All") + searched.map { it.genre }.distinct()
             if (tab != "Home" || query.isNotBlank()) {
@@ -377,7 +596,7 @@ private fun CinemaApp() {
                             onLive = { tab = "Live TV" }
                         )
                     }
-                    item { HomeRail("မြန်မာဇာတ်ကားများ", catalog.filter { it.genre == "Myanmar" }, saved, { detail = it }, ::toggle) }
+                    item { HomeRail("မြန်မာရုပ်ရှင်နှင့် Recap Channels", catalog.filter { it.genre == "Myanmar" || it.genre == "Myanmar Recaps" }, saved, { detail = it }, ::toggle) }
                     item { HomeRail("LIVE TV · Official Channels", catalog.filter { it.category == "Live TV" }, saved, { detail = it }, ::toggle) }
                     item { HomeRail("Short Films & Movie Recaps", catalog.filter { it.category == "Shorts" }, saved, { detail = it }, ::toggle) }
                     item { HomeRail("Discovery • History • Nature", catalog.filter { it.category == "YouTube" }, saved, { detail = it }, ::toggle) }

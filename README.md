@@ -1,45 +1,64 @@
-# AAII CINEMA — Native Android V2.2 (APK Build Candidate)
+# AAII CINEMA — Native Android V2.3
 
-**Status:** Validated Android Studio / GitHub Actions source; APK **not** compiled or installed in the current offline environment. Do not claim an APK exists until GitHub Actions publishes `AAII-CINEMA-V2.2-DEBUG-APK`.
+**Status:** V2.3 development branch; GitHub Actions build and real-device QA are pending.  
+**Package:** `asia.aaii.cinema`  
+**Version:** 2.3 (versionCode 23)
 
-## Features
+## V2.3 changes
 
-- Kotlin + Jetpack Compose / Material 3 dark cinematic UI, approved AAII CINEMA blue-purple-gold icon.
-- Ten-screen navigation path: Home, Explore, Detail, licensed demo Player, Search, Live TV, YouTube, Telegram, My List, Profile.
-- Fixed six-item footer for Home / Explore / TV / Telegram / My List / Profile; Search reachable from the header.
-- Korea / English / Japan Series rails, content filters, a persistent My List, and an informative playback error state.
-- Initial GitHub build seed catalog: 10 demo directory records. The complete 979-record / 959 Telegram-reference catalog remains in the separately backed-up V2.2 full project ZIP and must be merged before production release.
-- User-added **public** Telegram links only; private invite links excluded from manual import.
-- Only the CC0 sample MP4 is sent to Media3 for in-app playback. Third-party channels and other videos open external official/source pages; no downloading, republishing or circumventing access.
-- Profile is a Free Preview — registration, subscription billing, offline movie downloads and TV stream verification are **not** implemented.
-- Previously excluded Mahar / Pyone Play / ShweStream / iStream / Sein Htay / MRTV4 Official are not reintroduced.
+- Retains the V2.2 Kotlin + Jetpack Compose / Material 3 dark cinematic interface, logo, six-item footer and navigation.
+- Expands the YouTube / short-film directory with National Geographic, Free Documentary, PBS Space Time, DUST, MC Movie Recap, Myanmar Tawyar Recaps and Move World By DeDe.
+- Adds native Telegram **CSV / JSON bulk import** from Android document picker.
+- CSV header: `title,url,genre`; accepted aliases include `name/link/category`.
+- JSON accepts an array, an `items` array, a `links` array, or a single `title/url` object.
+- Import safety: HTTPS public `t.me/channel` and `t.me/channel/123` references only; private `t.me/c/` paths, invite links, invalid URLs and duplicates are rejected. Maximum 500 records per import and 1 MB per file.
+- Search normalizes Unicode text, punctuation and whitespace, then matches all query terms across title, description, genre, language and category.
+- Imported links are stored locally in app preferences and open in Telegram / browser only. No video is copied, downloaded or internally streamed from Telegram.
+
+## Source audit — user-supplied Movie Channel Hub HTML
+
+The rechecked HTML supplied in the project contains **372 Telegram URL fields**. There are 369 private `t.me/c/` URL records (367 unique private URLs), 3 malformed / placeholder values, and no valid public Telegram channel links in that source. They are therefore not silently imported into the public catalog. Use the in-app CSV / JSON importer for verified public links.
+
+The previously referenced larger full-project archive is not part of this repository branch; the current committed built-in catalog is a curated directory, not a claim that all prior archive records have been merged.
+
+## Media and rights policy
+
+- Official YouTube entries open the creator's channel page externally.
+- Creator recap channels are directory references only; rights to third-party clips are not verified.
+- Only the existing CC0 sample MP4 is eligible for the in-app demo player. Third-party movie / TV / Telegram links are external references.
+- No downloading, rehosting, bypassing membership, removing ads, or rebroadcasting third-party content.
+- Registration, subscription billing, offline movie downloads and live-TV feed verification are not implemented in this build.
 
 ## Build APK via GitHub Actions
 
-1. Use the selected existing repository: `https://github.com/aiacademyanmar/cinema`.
-2. Project source is committed at the repository root including hidden `.github` workflow.
-3. Open **Actions → Build AAII Cinema V2.2 Native APK → Run workflow**.
-4. After a successful workflow, download the `AAII-CINEMA-V2.2-DEBUG-APK` artifact and extract `app-debug.apk`.
-5. Verify `APK_SHA256.txt` before Samsung install. This is a *debug-signed* test build, not a Play Store release.
+1. Open [GitHub Actions](https://github.com/aiacademyanmar/cinema/actions).
+2. Select **Build AAII Cinema V2.3 Native APK**.
+3. Run the workflow on `v2.3-development`, or push to that branch.
+4. Download `AAII-CINEMA-V2.3-DEBUG-APK` after a successful run.
+5. Extract `app-debug.apk` and verify `APK_SHA256.txt`.
 
-Requirements: Android SDK 35; JDK 17; Android Gradle Plugin 8.7.3; Gradle 8.10.2; Kotlin 2.0.21; Compose BOM 2025.02.00; minSdk 26.
+Requirements: Android SDK 35; JDK 17; Gradle 8.10.2; Kotlin 2.0.21; Compose BOM 2025.02.00; minSdk 26.
 
-### Run preflight locally
+### Run static preflight
 
 ```bash
 python3 scripts/validate_project.py
 ```
 
-The preflight validates catalog schema/IDs, Telegram count and URL shape, media source policy, manifest XML and required brand images. It **does not substitute for** full Gradle compilation, SDK resolution or a real-phone UX test.
+Static preflight checks catalog IDs and HTTPS URLs, rejects private Telegram paths in the built-in catalog, verifies the import feature markers and CSV template, and parses Android XML. It does not replace Gradle compilation or Samsung-device testing.
 
-### Troubleshooting
+## Device QA still required
 
-If Actions fails, download `AAII-CINEMA-V2.2-BUILD-LOG`, locate the first compile exception, and correct the source before rerunning. The GitHub workflow uploads the actual APK **only when** the compilation succeeds.
+1. Install on Samsung Android 8+ (minSdk 26) and confirm launch, icon and layout.
+2. Test 360dp and 412dp widths; check the six-item footer and Telegram import buttons.
+3. Import a CSV and JSON file containing public test links; confirm added / duplicate / rejected counts.
+4. Confirm `t.me/c/` links are rejected and never opened as in-app video.
+5. Test Burmese and English multi-term search and genre filters.
+6. Test Home / Explore / Detail / Player / Search / Live TV / YouTube / Telegram / My List / Profile navigation.
+7. Restart and confirm My List and imported public links persist.
+8. Verify external link failure messaging and player back behaviour.
 
-## Source provenance
+## Source repository
 
-Telegram reference list was parsed from the HTML the user provided and has not been authenticated against private Telegram channels. `t.me/c/...` links generally require the viewer to be a channel member. No source videos are included in the archive and external URLs may stop working.
-
-## Status of prior design mockups
-
-The 10 mobile UI designs are artistic *references*, not screenshots of a compiled APK. Compose implements the same information architecture but is not a pixel-for-pixel copy; no real subscription, watch history or offline download is claimed.
+`https://github.com/aiacademyanmar/cinema`  
+Branch: `v2.3-development`
