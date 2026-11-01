@@ -1,35 +1,31 @@
-# AAII CINEMA V2.4 — QA / Build Report
+# AAII CINEMA V2.7 — FINAL QA REPORT (Code/CI)
 
-**Date:** 2026-11-01  
-**Version:** 2.4 / versionCode 24  
-**Branch:** v2.4-development
+**Checked date:** 2026-11-01
+**Branch:** v2.7-youtube-playlists-100
+**Scope:** GitHub build, source and catalog checks. No Android device emulator or physical Samsung run is available in this environment.
 
-## Implemented
-- Coil-powered poster / thumbnail gallery with generic placeholder art.
-- Local Recently Viewed history.
-- Continue Watching for in-app stream entries; playback position persisted every five seconds and restored on resume.
-- Favorite genre/category persistence.
-- Media3 subtitle/audio language preference settings and Fit / Fill / Zoom ratio.
-- Big Buck Bunny sample stream for player/resume QA, with Blender Foundation CC BY 3.0 attribution.
-- Existing V2.3 Telegram CSV/JSON import, Unicode search and external-link safety retained.
+## Confirmed before this QA patch
+- GitHub Actions build #41286317626: SUCCESS, APK artifact AAII-CINEMA-V2.7-DEBUG-APK (ZIP size 19,291,452 bytes).
+- Catalog JSON parsed: 120 entries; 20 cited but live-unverified YouTube Playlist ID entries; 80 playlist discovery searches; 20 older baseline entries.
+- Native app code included the preferred Burmese captions query (`cc_lang_pref=my&cc_load_policy=1&hl=my`).
+- Two sourced YouTube playlist pages were indexed with recognizable title strings: Crash Course U.S. History and သုခမြိုင်. This is NOT a playback or caption verification.
 
-## Content notes
-- 18 built-in catalog records.
-- One built-in native stream: Big Buck Bunny (CC BY 3.0; attribution required; retain full credits).
-- Remaining YouTube / TV / Telegram records are external references only.
-- Generic Unsplash images are placeholders, not official posters.
+## QA patch in this commit
+- Redirect 15 earlier unverified YouTube `user_uploads` channel-handle entries to official channel URLs (external link) to avoid falsely claiming working in-app embedded playback.
+- Keep internal YouTube embed only for 20 explicit `PL...` playlist ID entries.
+- Add stricter CI catalog checks for verified URL *shape*, category coverage, counts and caption defaults.
+- Use real `https://aaii.asia/` base origin for WebView content.
+- Add `English Learning` to genre navigation for English-language Crash Course Economics.
+- Keep an external 'Open Playlist on YouTube' fallback action for playlist entries.
 
-## Static QA
-- Catalog JSON schema / unique IDs / HTTPS URLs.
-- All catalog entries include a poster artwork URL.
-- Big Buck Bunny stream attribution present.
-- Private Telegram path exclusion.
-- Kotlin feature marker checks.
-- Android XML parsing.
-- Version name / code checks.
+## QA that is still pending
+- 20 real playlist IDs' up-to-date availability, accurate title mapping, embed permissions and per-country geoblocking.
+- WebView video playback and YouTube error 153 from a Samsung phone.
+- Captions `my` availability: preferred language parameter does NOT generate or guarantee Burmese captions.
+- WebChromeClient fullscreen behavior, orientation changes, Back button and pause/resume.
+- Internet disconnected state, fallback links and device crash/ANR monitoring.
+- 360dp and 412dp responsive layout and Burmese font rendering.
+- Actual licensed content rights review; no bypassing YouTube streaming controls.
 
-## Pending
-- Gradle compile on GitHub Actions.
-- APK artifact / SHA256 verification.
-- Samsung install, layout, player resume, track settings and persistence tests.
-- Poster URL availability on a real device.
+## Result
+Source/CI success applies to the successful pre-patch APK, but it does not constitute functional playback QA. A new Build must pass after the QA patch. Runtime/contents must be verified on a physical device before production release.
