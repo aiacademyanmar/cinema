@@ -23,6 +23,9 @@ for idx,r in enumerate(s):
     if parsed.scheme!='https' or not parsed.netloc: errors.append(f'{idx}: invalid HTTPS URL')
     if r['kind']=='youtube':
         if parsed.netloc not in ('www.youtube.com','youtube.com') or parsed.path != '/embed': errors.append(f'{idx}: invalid YouTube embed URL')
+        from urllib.parse import parse_qs
+        params=parse_qs(parsed.query)
+        if params.get('listType') != ['playlist'] or not re.fullmatch(r'PL[A-Za-z0-9_-]{3,100}', params.get('list',[''])[0]): errors.append(f'{idx}: invalid playlist parameters')
         if r.get('channelUrl','').startswith('https://www.youtube.com/') is False: errors.append(f'{idx}: YouTube channel URL missing')
         if r['category'] not in ('YouTube','Shorts'): errors.append(f'{idx}: YouTube embedded item must be in YouTube or Shorts category')
         if 'YouTube' not in r['rights']: errors.append(f'{idx}: YouTube rights/source note missing')
@@ -50,6 +53,13 @@ playlist_items=[r for r in s if r['id'].startswith('ytplaylist-')]
 assert len(playlist_items)==100, f'Expected 100 playlist collection records, got {len(playlist_items)}'
 assert len([r for r in playlist_items if r.get('playlistStatus')=='linked_unverified'])==20, 'Expected 20 sourced playlist URLs'
 assert len([r for r in playlist_items if r.get('playlistStatus')=='discovery_search'])==80, 'Expected 80 clearly labeled playlist discovery searches'
+assert not any(r['kind']=='youtube' and not r['id'].startswith('ytplaylist-') for r in s), 'unsupported user_uploads embeds must be external links'
+assert not any('listType=user_uploads' in r['url'] for r in s), 'unverified user uploads embed still exists'
+assert all(r['category']=='YouTube' for r in playlist_items), 'playlist items must be in YouTube category'
+expected_genres=['Myanmar Movie Recap','Myanmar Learning','English Learning','History','Sports','Science & Documentary','Myanmar Drama']
+assert all(any(r['genre']==g for r in playlist_items) for g in expected_genres), 'missing featured YouTube collection category'
+assert all(r.get('playlistStatus')!='linked_unverified' or r['kind']=='youtube' for r in playlist_items), 'sourced playlist must use official player'
+assert all(r.get('playlistStatus')!='discovery_search' or r['kind']=='playlist_search' for r in playlist_items), 'discovery search must open externally'
 assert not errors,'\n'.join(errors[:25])
 for file in ('app/src/main/AndroidManifest.xml','app/src/main/res/drawable/cinema_logo.xml'):
     ElementTree.parse(root/file)
@@ -58,6 +68,8 @@ for f in ('app/src/main/assets/cinema_mark.b64',):
 src=(root/'app/src/main/java/asia/aaii/cinema/MainActivity.kt').read_text(encoding='utf-8')
 for x in ('private fun CinemaApp()', '@Composable', 'ExoPlayer.Builder', 'fun toggle(', 'safeTelegramUrl', 'parseTelegramImport(', 'parseCsvRows(', 'rememberLauncherForActivityResult(', 'normalizeSearch(', 'readRecentIds(', 'readWatchProgress(', 'persistWatchProgress(', 'FavoriteGenreRail(', 'ContinueWatchingEmpty(', 'AsyncImage(', 'PlayerScreen(', 'initialPositionMs', 'Playback Settings', 'Retry Playback', 'setPlaybackSpeed(', 'LifecycleEventObserver', 'YouTubePlayerScreen(', 'cc_lang_pref', 'cc_load_policy', 'safeYouTubeEmbedUrl', 'setPreferredTextLanguage', 'RESIZE_MODE_ZOOM', 'ExploreNativeScreen(', 'ProfileNativeScreen(', 'BackHandler('):
     assert x in src, f'missing source feature: {x}'
+assert 'https://aaii.asia/' in src and 'https://asia.aaii.cinema/' not in src, 'invalid embedded YouTube player origin'
+assert 'cc_lang_pref' in src and '"my"' in src and 'cc_load_policy' in src, 'Myanmar caption preference missing'
 assert 'versionName = "2.7"' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
 assert 'versionCode = 27' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
 template = (root/'TELEGRAM_IMPORT_TEMPLATE.csv').read_text(encoding='utf-8').splitlines()[0].strip().lower()
