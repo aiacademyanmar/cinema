@@ -5,6 +5,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -72,7 +76,8 @@ private data class CinemaItem(
     val id: String, val title: String, val subtitle: String, val category: String,
     val genre: String, val url: String, val kind: String, val accent: String,
     val badge: String, val language: String, val rights: String, val featured: Boolean,
-    val posterUrl: String? = null, val year: String? = null, val credits: String? = null
+    val posterUrl: String? = null, val year: String? = null, val credits: String? = null,
+    val channelUrl: String? = null
 )
 
 private fun readItems(context: Context): List<CinemaItem> = runCatching {
@@ -89,7 +94,8 @@ private fun readItems(context: Context): List<CinemaItem> = runCatching {
             rights = obj.getString("rights"), featured = obj.getBoolean("featured"),
             posterUrl = obj.optString("posterUrl").takeIf { it.startsWith("https://") },
             year = obj.optString("year").takeIf { it.isNotBlank() && it != "null" },
-            credits = obj.optString("credits").takeIf { it.isNotBlank() && it != "null" }
+            credits = obj.optString("credits").takeIf { it.isNotBlank() && it != "null" },
+            channelUrl = obj.optString("channelUrl").takeIf { it.startsWith("https://www.youtube.com/") }
         )
     }
 }.getOrDefault(emptyList())
@@ -341,6 +347,25 @@ private fun persistTelegramLinks(context: Context, links: List<CinemaItem>) {
         .edit().putString("telegram_links", arr.toString()).apply()
 }
 
+private fun safeYouTubeEmbedUrl(value: String): String? = runCatching {
+    val uri = Uri.parse(value.trim())
+    if (uri.scheme != "https" || uri.host !in setOf("youtube.com", "www.youtube.com") ||
+        uri.path != "/embed") return@runCatching null
+    val listType = uri.getQueryParameter("listType")
+    val list = uri.getQueryParameter("list")
+    if (listType !in setOf("user_uploads", "playlist") ||
+        list.isNullOrBlank() || !Regex("[A-Za-z0-9_-]{3,100}").matches(list)) return@runCatching null
+    Uri.parse("https://www.youtube.com/embed").buildUpon()
+        .appendQueryParameter("listType", listType)
+        .appendQueryParameter("list", list)
+        .appendQueryParameter("cc_lang_pref", "my")
+        .appendQueryParameter("cc_load_policy", "1")
+        .appendQueryParameter("hl", "my")
+        .appendQueryParameter("playsinline", "1")
+        .appendQueryParameter("rel", "0")
+        .build().toString()
+}.getOrNull()
+
 private fun accent(hex: String): Color = runCatching {
     Color(android.graphics.Color.parseColor(hex))
 }.getOrDefault(red)
@@ -451,7 +476,7 @@ private fun CinemaApp() {
     }
     fun play(item: CinemaItem) {
         recordRecent(item)
-        if (item.kind == "stream") playing = item else openOfficial(context, item.url)
+        if (item.kind == "stream" || item.kind == "youtube") playing = item else openOfficial(context, item.url)
         detail = null
     }
 
@@ -523,7 +548,7 @@ private fun CinemaApp() {
                     IconButton(onClick = { tab = "Search"; query = ""; genre = "All" }) {
                         Icon(Icons.Filled.Search, contentDescription = "Open Search", tint = fg)
                     }
-                    Text("V2.5", color = gold, fontSize = 10.sp)
+                    Text("V2.6", color = gold, fontSize = 10.sp)
                 }
             }
 
@@ -751,9 +776,13 @@ private fun CinemaApp() {
                     colors = ButtonDefaults.buttonColors(containerColor = red),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(if (item.kind == "stream") Icons.Filled.PlayArrow else Icons.Filled.OpenInNew, null)
+                    Icon(if (item.kind == "stream" || item.kind == "youtube") Icons.Filled.PlayArrow else Icons.Filled.OpenInNew, null)
                     Spacer(Modifier.width(7.dp))
-                    Text(if (item.kind == "stream") "Play in App" else if (item.id.startsWith("hub-")) "Open Telegram (member access)" else "Open Source")
+                    Text(when (item.kind) {
+                        "stream" -> "Play in App"
+                        "youtube" -> "Play YouTube · မြန်မာစာတန်းထိုး"
+                        else -> if (item.id.startsWith("hub-")) "Open Telegram (member access)" else "Open Source"
+                    })
                 }
                 if (item.category == "Telegram" && telegramSources.any { it.id == item.id }) {
                     TextButton(onClick = {
@@ -974,12 +1003,107 @@ private fun Poster(item: CinemaItem, isSaved: Boolean, onClick: () -> Unit, onSa
 }
 
 @Composable
+@Composable
+private fun YouTubePlayerScreen(item: CinemaItem, onBack: () -> Unit, onOpenChannel: () -> Unit) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val embedUrl = remember(item.url) { safeYouTubeEmbedUrl(item.url) }
+    val html = remember(embedUrl) {
+        embedUrl?.let { src ->
+            """<!doctype html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<style>html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
+#player{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head>
+<body><iframe id="player" src="$src" title="YouTube player" frameborder="0"
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body></html>"""
+        }
+    }
+    val webView = remember(item.id, embedUrl) {
+        WebView(context).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.mediaPlaybackRequiresUserGesture = true
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            webChromeClient = WebChromeClient()
+            webViewClient = WebViewClient()
+            if (html != null) {
+                // The host matches this Android application's applicationId for YouTube player identification.
+                loadDataWithBaseURL("https://asia.aaii.cinema/", html, "text/html", "UTF-8", null)
+            }
+        }
+    }
+    DisposableEffect(lifecycleOwner, webView) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> webView.onResume()
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> webView.onPause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            webView.stopLoading()
+            webView.loadUrl("about:blank")
+            webView.destroy()
+        }
+    }
+    Column(Modifier.fillMaxSize().background(bg).statusBarsPadding().navigationBarsPadding()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "Back", tint = fg) }
+            Spacer(Modifier.width(9.dp))
+            Column(Modifier.weight(1f)) {
+                Text(item.title, color = fg, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
+                Text(item.genre + " · Official YouTube channel", color = muted, fontSize = 10.sp)
+            }
+            Icon(Icons.Filled.Subtitles, contentDescription = "Myanmar captions default", tint = gold)
+        }
+        if (embedUrl != null) {
+            AndroidView(
+                factory = { webView },
+                modifier = Modifier.fillMaxWidth().height(220.dp)
+            )
+        } else {
+            Text("YouTube player link is invalid. Open the official channel instead.",
+                color = Color(0xFFFFAAB4), modifier = Modifier.padding(20.dp))
+        }
+        Text("မြန်မာစာတန်းထိုး · DEFAULT: MYANMAR (my)",
+            color = gold, fontWeight = FontWeight.Bold, fontSize = 12.sp,
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp))
+        Text("YouTube က ဗီဒီယိုဖွင့်ချိန်တွင် မြန်မာစာတန်းထိုးကို ဦးစားပေးပြီး အလိုအလျောက်ဖွင့်ရန် တောင်းဆိုထားသည်။ ဗီဒီယိုတစ်ခုတွင် မြန်မာစာတန်း track မရှိပါက အလိုအလျောက်ပေါ်မည်ဟု အာမမခံနိုင်ပါ။ CC > Settings > Subtitles > Auto-translate > Burmese ကို ရွေးနိုင်သည့် ဗီဒီယိုများတွင် ကိုယ်တိုင်ရွေးပါ။",
+            color = muted, fontSize = 12.sp, lineHeight = 19.sp,
+            modifier = Modifier.padding(horizontal = 18.dp))
+        Spacer(Modifier.height(14.dp))
+        OutlinedButton(onClick = onOpenChannel, modifier = Modifier.padding(horizontal = 18.dp).fillMaxWidth()) {
+            Icon(Icons.Filled.OpenInNew, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Open Official YouTube Channel")
+        }
+        Spacer(Modifier.height(8.dp))
+        Text("YouTube player controls and branding are provided by YouTube.",
+            color = muted, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 18.dp))
+    }
+}
+
 private fun PlayerScreen(
     item: CinemaItem,
     initialPositionMs: Long,
     onProgress: (Long, Long) -> Unit,
     onBack: () -> Unit
 ) {
+    if (item.kind == "youtube") {
+        YouTubePlayerScreen(
+            item = item,
+            onBack = onBack,
+            onOpenChannel = { item.channelUrl?.let { openOfficial(LocalContext.current, it) } }
+        )
+        return
+    }
     val context = LocalContext.current
     var playbackError by remember(item.url) { mutableStateOf<String?>(null) }
     var showSettings by remember(item.id) { mutableStateOf(false) }
@@ -1131,10 +1255,14 @@ private fun ExploreNativeScreen(onChoose: (String) -> Unit) {
         Triple("Telegram:English Series", "English Series", Icons.Filled.Language),
         Triple("Telegram:Japan Series", "Japan Series", Icons.Filled.Language),
         Triple("Live TV", "Live TV", Icons.Filled.Tv),
-        Triple("YouTube", "YouTube Channels", Icons.Filled.SmartDisplay),
-        Triple("Shorts", "Short Films", Icons.Filled.PlayCircle),
+        Triple("YouTube", "YouTube Movie Channels", Icons.Filled.SmartDisplay),
         Triple("YouTube:Documentary", "Documentary", Icons.Filled.Public),
-        Triple("YouTube:Discovery", "Discovery · History", Icons.Filled.Explore),
+        Triple("YouTube:Discovery", "Discovery", Icons.Filled.Explore),
+        Triple("YouTube:History", "History", Icons.Filled.History),
+        Triple("YouTube:Nature", "Nature & Wildlife", Icons.Filled.Public),
+        Triple("YouTube:Science", "Science", Icons.Filled.Lightbulb),
+        Triple("Shorts", "Short Films", Icons.Filled.PlayCircle),
+        Triple("YouTube:Sci-Fi Shorts", "Sci-Fi Shorts", Icons.Filled.Movie),
         Triple("Telegram", "Telegram Movie Links", Icons.Filled.Link)
     )
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(14.dp),
@@ -1240,7 +1368,7 @@ private fun ProfileNativeScreen(
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(surface).padding(18.dp)) {
                 Text("Offline catalog · $itemCount items", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(6.dp))
-                Text("External Telegram / YouTube / TV require connectivity. Offline media downloads are not enabled.",
+                Text("YouTube captions default to Myanmar (my) when a track is available. YouTube / TV require connectivity; offline downloads are not enabled.",
                     color = muted, fontSize = 11.sp)
                 Spacer(Modifier.height(14.dp))
                 Text("AAII CINEMA  V2.5", color = gold, fontSize = 12.sp)
