@@ -17,6 +17,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -520,7 +523,7 @@ private fun CinemaApp() {
                     IconButton(onClick = { tab = "Search"; query = ""; genre = "All" }) {
                         Icon(Icons.Filled.Search, contentDescription = "Open Search", tint = fg)
                     }
-                    Text("V2.4", color = gold, fontSize = 10.sp)
+                    Text("V2.5", color = gold, fontSize = 10.sp)
                 }
             }
 
@@ -983,6 +986,8 @@ private fun PlayerScreen(
     var subtitleChoice by remember(item.id) { mutableStateOf("Off") }
     var audioChoice by remember(item.id) { mutableStateOf("Auto") }
     var resizeMode by remember(item.id) { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    var playbackSpeed by remember(item.id) { mutableFloatStateOf(1f) }
+    val lifecycleOwner = LocalLifecycleOwner.current
     val player = remember(item.url) {
         ExoPlayer.Builder(context).build().apply {
             addListener(object : Player.Listener {
@@ -995,6 +1000,16 @@ private fun PlayerScreen(
             if (initialPositionMs > 0L) seekTo(initialPositionMs)
             playWhenReady = true
         }
+    }
+    DisposableEffect(lifecycleOwner, player) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                onProgress(player.currentPosition, player.duration)
+                player.pause()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     LaunchedEffect(player) {
         while (true) {
@@ -1041,6 +1056,8 @@ private fun PlayerScreen(
         if (playbackError != null) {
             Text(playbackError.orEmpty(), color = Color(0xFFFFAAB4), fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
+            Button(onClick = { playbackError = null; player.prepare(); player.play() },
+                modifier = Modifier.padding(horizontal = 20.dp)) { Text("Retry Playback") }
         }
         Text("LICENSED MEDIA · " + item.rights, color = red, fontSize = 10.sp, lineHeight = 15.sp,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
@@ -1074,6 +1091,15 @@ private fun PlayerScreen(
                             verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = audioChoice == choice, onClick = { applyAudio(choice) })
                             Text(choice, color = fg, fontSize = 13.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text("Playback speed", color = gold, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEach { speed ->
+                            FilterChip(selected = playbackSpeed == speed,
+                                onClick = { playbackSpeed = speed; player.setPlaybackSpeed(speed) },
+                                label = { Text(speed.toString() + "x", fontSize = 10.sp) })
                         }
                     }
                     Spacer(Modifier.height(10.dp))
@@ -1217,7 +1243,7 @@ private fun ProfileNativeScreen(
                 Text("External Telegram / YouTube / TV require connectivity. Offline media downloads are not enabled.",
                     color = muted, fontSize = 11.sp)
                 Spacer(Modifier.height(14.dp))
-                Text("AAII CINEMA  V2.4", color = gold, fontSize = 12.sp)
+                Text("AAII CINEMA  V2.5", color = gold, fontSize = 12.sp)
             }
         }
     }
