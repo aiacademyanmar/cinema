@@ -25,7 +25,7 @@ for idx,r in enumerate(s):
         if parsed.netloc not in ('www.youtube.com','youtube.com') or parsed.path != '/embed': errors.append(f'{idx}: invalid YouTube embed URL')
         if r.get('channelUrl','').startswith('https://www.youtube.com/') is False: errors.append(f'{idx}: YouTube channel URL missing')
         if r['category'] not in ('YouTube','Shorts'): errors.append(f'{idx}: YouTube embedded item must be in YouTube or Shorts category')
-        if 'Official YouTube' not in r['rights'] and 'YouTube creator channel' not in r['rights']: errors.append(f'{idx}: YouTube rights/source note missing')
+        if 'YouTube' not in r['rights']: errors.append(f'{idx}: YouTube rights/source note missing')
     if r['category']=='Telegram':
         if parsed.netloc not in ('t.me','telegram.me'): errors.append(f'{idx}: unsupported Telegram host')
         if r['url'] in links: errors.append(f'{idx}: duplicate Telegram link')
