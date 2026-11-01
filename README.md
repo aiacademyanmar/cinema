@@ -8,7 +8,7 @@
 - Ten-screen navigation path: Home, Explore, Detail, licensed demo Player, Search, Live TV, YouTube, Telegram, My List, Profile.
 - Fixed six-item footer for Home / Explore / TV / Telegram / My List / Profile; Search reachable from the header.
 - Korea / English / Japan Series rails, content filters, a persistent My List, and an informative playback error state.
-- Offline **catalog** of 979 records: 959 *unverified* Telegram private-channel/post references, plus other directory entries.
+- Initial GitHub build seed catalog: 10 demo directory records. The complete 979-record / 959 Telegram-reference catalog remains in the separately backed-up V2.2 full project ZIP and must be merged before production release.
 - User-added **public** Telegram links only; private invite links excluded from manual import.
 - Only the CC0 sample MP4 is sent to Media3 for in-app playback. Third-party channels and other videos open external official/source pages; no downloading, republishing or circumventing access.
 - Profile is a Free Preview — registration, subscription billing, offline movie downloads and TV stream verification are **not** implemented.
