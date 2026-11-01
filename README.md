@@ -1,51 +1,38 @@
-# AAII CINEMA — Native Android V2.4
+# AAII CINEMA V2.7 — YouTube Playlists 100 Collections
 
-**Status:** V2.4 development branch; CI build and real-device QA pending.  
-**Package:** `asia.aaii.cinema`  
-**Version:** 2.4 (versionCode 24)
+**Status:** Build-source branch; device playback and region availability NOT verified.
+**Branch:** `v2.7-youtube-playlists-100`
+**Android version:** 2.7 (versionCode 27)
 
-## V2.4 features
-- Retains V2.3 dark cinematic Compose UI, AAII CINEMA branding, six-item bottom navigation and Telegram CSV/JSON import.
-- Poster / thumbnail gallery using Coil Compose with generic cinematic artwork placeholders (not official movie posters).
-- Recently Viewed rail (local-only; tracks catalog details opened).
-- Continue Watching rail with local playback progress for native `kind=stream` catalog items.
-- Playback position is saved every five seconds and restored when the user resumes.
-- Favorite Categories stored locally and editable from Home / Profile.
-- Media3 player settings: subtitle preference (Off / Myanmar / English / Japanese), audio language preference and screen ratio (Fit / Fill / Zoom). Track choices only work if the selected stream contains those tracks.
-- Adds **Big Buck Bunny** as the player/resume QA sample. Copyright © 2008 Blender Foundation / www.bigbuckbunny.org; CC BY 3.0. Attribution required; keep the full credits roll. [Official license information](https://peach.blender.org/about/).
-- Sample MP4: `https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4`.
+## Playlist catalog scope
 
-## Content / rights
-- Poster artwork is generic Unsplash imagery and is not official film artwork.
-- YouTube, TV and Telegram entries remain external references; they are not extracted, copied or rebroadcast.
-- Big Buck Bunny is the only built-in native video stream in this release. Its attribution is shown in the catalog and player.
-- Third-party movie/TV streams require documented distribution rights before inclusion.
-- Subscription billing, user accounts, server sync and offline movie downloads are not implemented.
+- **100 new discoverable playlist collection entries** (in addition to the existing 20 built-in catalog entries).
+- **20 sourced playlist URLs** from third-party education indexes / a channel's public post. These have concrete YouTube playlist IDs, but individual availability, accurate title mapping and embedding permissions have NOT been independently verified.
+- **80 playlist discovery-search entries** across five topics. These are prefilled YouTube search results filtered to Playlists, NOT verified pre-existing playlist IDs.
+- Scope includes Myanmar Movie Recap, Myanmar Learning, English History, Sports, Science & Documentary, plus a sourced Myanmar Drama series playlist.
+- Existing 15 YouTube channel upload references remain in the catalog; channel handle embeds may still require future account/channel-ID verification.
 
-## Build
-1. Open [GitHub Actions](https://github.com/aiacademyanmar/cinema/actions).
-2. Select **Build AAII Cinema V2.4 Native APK**.
-3. Run on branch `v2.4-development`.
-4. Download `AAII-CINEMA-V2.4-DEBUG-APK` after success and verify the included SHA256.
+## Native YouTube playback
 
-Requirements: Android SDK 35; JDK 17; Gradle 8.10.2; Kotlin 2.0.21; Compose BOM 2025.02.00; Media3 1.5.1; Coil Compose 2.7.0; minSdk 26.
+- Sourced YouTube playlist IDs use official YouTube embedded player URLs with `listType=playlist`.
+- Discovery entries open YouTube search results externally and are never presented as directly playable playlist IDs.
+- Myanmar subtitles requested by default using `cc_lang_pref=my`, `cc_load_policy=1`, and `hl=my`; only effective where a compatible caption track exists, and does not promise Burmese machine translation for every video.
+- No video extraction, rehosting, unauthorized downloads, bypassing ads/DRM, or unlicensed use.
 
-## Static preflight
-```bash
-python3 scripts/validate_project.py
-```
-Static preflight checks catalog schema, poster URLs, demo attribution, Kotlin feature markers, Android XML and version. It does not replace Gradle compilation, live URL checks or Samsung QA.
+## Provenance and QA
 
-## Samsung QA checklist
-- Install on Samsung Android 8+.
-- Confirm poster images load and fallback art appears offline.
-- Open catalog details and verify Recently Viewed.
-- Play Big Buck Bunny, pause after about one minute, exit and resume from Continue Watching.
-- Verify progress restore and completion cleanup after app restart.
-- Test subtitle/audio where tracks exist; test Fit / Fill / Zoom.
-- Add/remove favorite genres and verify persistence.
-- Check 360dp / 412dp widths, Burmese text, footer, Back navigation and player release.
-- Confirm external YouTube / Telegram / TV entries open externally only.
+Initial sample playlist IDs were sourced from:
+- [Channel K Myanmar post with drama playlist](https://t.me/s/ChannelKMyanmar/3864)
+- [PolyglotClub History Video Series](https://polyglotclub.com/wiki/Language/Multiple-languages/Culture/History-Video-Series)
+- [Digital Education Website playlists](https://counselinghearts.com/digitaleducationwebsites/)
+- [Dene Magna School](https://www.denemagna.co.uk/page/?pid=834&title=English)
+- [Knowledgia video playlist citations](https://natokhd.com/video/how-old-is-england-actually/HwFJeEh-zic)
+- [GCSE revision playlist resource](https://qaawyrdhistorytopics.wordpress.com/category/aqa-gcse/)
 
-Repository: `https://github.com/aiacademyanmar/cinema`  
-Branch: `v2.4-development`
+No YouTube Data API key has been supplied. The sourced 20 IDs have NOT been confirmed active through YouTube Data API; therefore this is a discovery/catalog build, not a claim of 100 verified, playable playlists.
+
+## Run build
+
+GitHub Actions > **Build AAII Cinema V2.7 Native APK** > Run workflow on `v2.7-youtube-playlists-100`.
+
+Test categories, Burmese text, external playlist searches, sourced embedded playlist playback, captions, fullscreen/back and source rights on Samsung devices.
