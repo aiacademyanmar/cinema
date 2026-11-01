@@ -1003,7 +1003,6 @@ private fun Poster(item: CinemaItem, isSaved: Boolean, onClick: () -> Unit, onSa
 }
 
 @Composable
-@Composable
 private fun YouTubePlayerScreen(item: CinemaItem, onBack: () -> Unit, onOpenChannel: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -1090,6 +1089,7 @@ referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body
     }
 }
 
+@Composable
 private fun PlayerScreen(
     item: CinemaItem,
     initialPositionMs: Long,
