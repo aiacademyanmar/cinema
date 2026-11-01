@@ -35,7 +35,7 @@ assert len(links)==category['Telegram']
 assert not errors,'\n'.join(errors[:25])
 for file in ('app/src/main/AndroidManifest.xml','app/src/main/res/drawable/cinema_logo.xml'):
     ElementTree.parse(root/file)
-for f in ('app/src/main/res/drawable-nodpi/cinema_mark.b64',):
+for f in ('app/src/main/assets/cinema_mark.b64',):
     assert (root/f).stat().st_size > 1000
 src=(root/'app/src/main/java/asia/aaii/cinema/MainActivity.kt').read_text(encoding='utf-8')
 for x in ('private fun CinemaApp()', '@Composable', 'ExoPlayer.Builder', 'fun toggle(', 'safeTelegramUrl', 'PlayerScreen(', 'ExploreNativeScreen(', 'ProfileNativeScreen(', 'BackHandler('):
