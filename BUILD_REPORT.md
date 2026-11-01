@@ -6,15 +6,15 @@
 
 ## Verified offline
 - Passed `python3 scripts/validate_project.py`.
-- 979 catalog records: 959 unique Telegram references, 7 YouTube, 6 Shorts, 4 Movies, 3 TV portals.
+- GitHub build seed contains 10 records so CI can compile and smoke-test the native shell. Full source ZIP retains the larger 979-record catalog (959 Telegram references); that full catalog has not yet been transferred into this repository due to connected Library storage limits.
 - All catalog URLs use HTTPS; source entries are metadata and open in an external app unless explicitly classified as licensed/demo stream.
 - Kotlin UI code updated with dedicated Search, improved Back behavior, Korean/English/Japanese rows, feedback for broken external links and an inline video error message.
-- Android manifest and vector XML parsed; required image resources exist.
+- Android manifest and vector XML parsed; logo Base64 source is committed; workflow restores drawable resources before Gradle build.
 - GitHub Actions includes SDK 35, Gradle 8.10.2, Java 17, APK artifact, SHA256, and failure log.
 
 ## Not verified
 - **No Android SDK, Gradle executable or external dependency download access in the current environment**, so native compilation and device testing cannot be verified here.
-- No GitHub repository is created by this file; CI must be started in an actual repository.
+- GitHub target repository exists and source commits have been pushed; workflow run still needs result verification.
 - No external Telegram private-link access, movie rights, TV live stream playback, or subscription entitlements verified.
 
 ## QA to complete after APK generation
