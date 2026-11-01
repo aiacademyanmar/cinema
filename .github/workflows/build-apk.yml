@@ -18,6 +18,7 @@ jobs:
 
       - name: Restore brand images from checked-in Base64 asset
         run: |
+          mkdir -p app/src/main/res/drawable-nodpi
           base64 --decode app/src/main/assets/cinema_mark.b64 > app/src/main/res/drawable-nodpi/cinema_mark.jpg
           cp app/src/main/res/drawable-nodpi/cinema_mark.jpg app/src/main/res/drawable-nodpi/cinema_banner.jpg
 
