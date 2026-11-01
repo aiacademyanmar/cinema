@@ -548,7 +548,7 @@ private fun CinemaApp() {
                     IconButton(onClick = { tab = "Search"; query = ""; genre = "All" }) {
                         Icon(Icons.Filled.Search, contentDescription = "Open Search", tint = fg)
                     }
-                    Text("V2.6", color = gold, fontSize = 10.sp)
+                    Text("V2.7", color = gold, fontSize = 10.sp)
                 }
             }
 
@@ -617,7 +617,9 @@ private fun CinemaApp() {
                 "Saved" -> catalog.filter { saved.contains(it.id) }
                 "Search" -> catalog
                 "Movies" -> catalog.filter { it.category == "Movies" || (it.category == "Telegram" && it.genre.endsWith("Series")) }
-                else -> catalog.filter { it.category == tab }
+                else -> if (tab.startsWith("YouTube:")) {
+                    catalog.filter { it.category == "YouTube" && it.genre == tab.substringAfter("YouTube:") }
+                } else catalog.filter { it.category == tab }
             }
             val searchIndex = remember(catalog) {
                 catalog.associate { item ->
@@ -781,6 +783,7 @@ private fun CinemaApp() {
                     Text(when (item.kind) {
                         "stream" -> "Play in App"
                         "youtube" -> "Play YouTube · မြန်မာစာတန်းထိုး"
+                        "playlist_search" -> "Find Playlists on YouTube"
                         else -> if (item.id.startsWith("hub-")) "Open Telegram (member access)" else "Open Source"
                     })
                 }
@@ -1255,7 +1258,12 @@ private fun ExploreNativeScreen(onChoose: (String) -> Unit) {
         Triple("Telegram:English Series", "English Series", Icons.Filled.Language),
         Triple("Telegram:Japan Series", "Japan Series", Icons.Filled.Language),
         Triple("Live TV", "Live TV", Icons.Filled.Tv),
-        Triple("YouTube", "YouTube Movie Channels", Icons.Filled.SmartDisplay),
+        Triple("YouTube", "YouTube Playlists · 100 Collections", Icons.Filled.SmartDisplay),
+        Triple("YouTube:Myanmar Movie Recap", "မြန်မာ Movie Recap", Icons.Filled.Movie),
+        Triple("YouTube:Myanmar Learning", "မြန်မာ Learning", Icons.Filled.Lightbulb),
+        Triple("YouTube:Sports", "English Sports", Icons.Filled.SportsSoccer),
+        Triple("YouTube:Science & Documentary", "Science & Documentary", Icons.Filled.Public),
+        Triple("YouTube:Myanmar Drama", "မြန်မာ Drama", Icons.Filled.SmartDisplay),
         Triple("YouTube:Documentary", "Documentary", Icons.Filled.Public),
         Triple("YouTube:Discovery", "Discovery", Icons.Filled.Explore),
         Triple("YouTube:History", "History", Icons.Filled.History),
