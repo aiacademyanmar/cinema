@@ -18,9 +18,14 @@ for idx,r in enumerate(s):
     if r['id'] in ids: errors.append(f'{idx}: repeated ID: {r["id"]}')
     ids.add(r['id'])
     if not isinstance(r['featured'],bool): errors.append(f'{idx}: featured must be boolean')
-    if r['kind'] not in ('link','stream'): errors.append(f'{idx}: bad kind {r["kind"]}')
+    if r['kind'] not in ('link','stream','youtube'): errors.append(f'{idx}: bad kind {r["kind"]}')
     parsed=urlparse(r['url'])
     if parsed.scheme!='https' or not parsed.netloc: errors.append(f'{idx}: invalid HTTPS URL')
+    if r['kind']=='youtube':
+        if parsed.netloc not in ('www.youtube.com','youtube.com') or parsed.path != '/embed': errors.append(f'{idx}: invalid YouTube embed URL')
+        if r.get('channelUrl','').startswith('https://www.youtube.com/') is False: errors.append(f'{idx}: YouTube channel URL missing')
+        if r['category'] not in ('YouTube','Shorts'): errors.append(f'{idx}: YouTube embedded item must be in YouTube or Shorts category')
+        if 'Official YouTube' not in r['rights'] and 'YouTube creator channel' not in r['rights']: errors.append(f'{idx}: YouTube rights/source note missing')
     if r['category']=='Telegram':
         if parsed.netloc not in ('t.me','telegram.me'): errors.append(f'{idx}: unsupported Telegram host')
         if r['url'] in links: errors.append(f'{idx}: duplicate Telegram link')
@@ -44,13 +49,13 @@ for file in ('app/src/main/AndroidManifest.xml','app/src/main/res/drawable/cinem
 for f in ('app/src/main/assets/cinema_mark.b64',):
     assert (root/f).stat().st_size > 1000
 src=(root/'app/src/main/java/asia/aaii/cinema/MainActivity.kt').read_text(encoding='utf-8')
-for x in ('private fun CinemaApp()', '@Composable', 'ExoPlayer.Builder', 'fun toggle(', 'safeTelegramUrl', 'parseTelegramImport(', 'parseCsvRows(', 'rememberLauncherForActivityResult(', 'normalizeSearch(', 'readRecentIds(', 'readWatchProgress(', 'persistWatchProgress(', 'FavoriteGenreRail(', 'ContinueWatchingEmpty(', 'AsyncImage(', 'PlayerScreen(', 'initialPositionMs', 'Playback Settings', 'Retry Playback', 'setPlaybackSpeed(', 'LifecycleEventObserver', 'setPreferredTextLanguage', 'RESIZE_MODE_ZOOM', 'ExploreNativeScreen(', 'ProfileNativeScreen(', 'BackHandler('):
+for x in ('private fun CinemaApp()', '@Composable', 'ExoPlayer.Builder', 'fun toggle(', 'safeTelegramUrl', 'parseTelegramImport(', 'parseCsvRows(', 'rememberLauncherForActivityResult(', 'normalizeSearch(', 'readRecentIds(', 'readWatchProgress(', 'persistWatchProgress(', 'FavoriteGenreRail(', 'ContinueWatchingEmpty(', 'AsyncImage(', 'PlayerScreen(', 'initialPositionMs', 'Playback Settings', 'Retry Playback', 'setPlaybackSpeed(', 'LifecycleEventObserver', 'YouTubePlayerScreen(', 'cc_lang_pref', 'cc_load_policy', 'safeYouTubeEmbedUrl', 'setPreferredTextLanguage', 'RESIZE_MODE_ZOOM', 'ExploreNativeScreen(', 'ProfileNativeScreen(', 'BackHandler('):
     assert x in src, f'missing source feature: {x}'
-assert 'versionName = "2.5"' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
-assert 'versionCode = 25' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
+assert 'versionName = "2.6"' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
+assert 'versionCode = 26' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
 template = (root/'TELEGRAM_IMPORT_TEMPLATE.csv').read_text(encoding='utf-8').splitlines()[0].strip().lower()
 assert template == 'title,url,genre', 'Telegram CSV template header mismatch'
-print('STATIC QA PASSED — V2.5')
+print('STATIC QA PASSED — V2.6')
 print('Total records:',len(s))
 print('Categories:',dict(category))
 print('Unique Telegram reference URLs:',len(links))
