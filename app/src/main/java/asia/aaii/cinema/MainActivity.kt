@@ -40,6 +40,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
+import androidx.media3.common.C
+import androidx.media3.ui.AspectRatioFrameLayout
+import kotlinx.coroutines.delay
 import androidx.compose.ui.window.Dialog
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -63,7 +67,8 @@ private val gold = Color(0xFFFFC761)
 private data class CinemaItem(
     val id: String, val title: String, val subtitle: String, val category: String,
     val genre: String, val url: String, val kind: String, val accent: String,
-    val badge: String, val language: String, val rights: String, val featured: Boolean
+    val badge: String, val language: String, val rights: String, val featured: Boolean,
+    val posterUrl: String? = null, val year: String? = null, val credits: String? = null
 )
 
 private fun readItems(context: Context): List<CinemaItem> = runCatching {
@@ -77,7 +82,10 @@ private fun readItems(context: Context): List<CinemaItem> = runCatching {
             genre = obj.getString("genre"), url = obj.getString("url"),
             kind = obj.getString("kind"), accent = obj.getString("accent"),
             badge = obj.getString("badge"), language = obj.getString("language"),
-            rights = obj.getString("rights"), featured = obj.getBoolean("featured")
+            rights = obj.getString("rights"), featured = obj.getBoolean("featured"),
+            posterUrl = obj.optString("posterUrl").takeIf { it.startsWith("https://") },
+            year = obj.optString("year").takeIf { it.isNotBlank() && it != "null" },
+            credits = obj.optString("credits").takeIf { it.isNotBlank() && it != "null" }
         )
     }
 }.getOrDefault(emptyList())
@@ -285,6 +293,40 @@ private fun readTelegramLinks(context: Context): List<CinemaItem> = runCatching 
     }
 }.getOrDefault(emptyList())
 
+
+private fun readRecentIds(context: Context): List<String> = runCatching {
+    val prefs = context.getSharedPreferences("aaii_cinema_v1", Context.MODE_PRIVATE)
+    val arr = JSONArray(prefs.getString("recent_ids", "[]") ?: "[]")
+    (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }.distinct().take(12)
+}.getOrDefault(emptyList())
+
+private fun persistRecentIds(context: Context, ids: List<String>) {
+    val arr = JSONArray()
+    ids.distinct().take(12).forEach { arr.put(it) }
+    context.getSharedPreferences("aaii_cinema_v1", Context.MODE_PRIVATE)
+        .edit().putString("recent_ids", arr.toString()).apply()
+}
+
+private fun readWatchProgress(context: Context): Map<String, Long> = runCatching {
+    val prefs = context.getSharedPreferences("aaii_cinema_v1", Context.MODE_PRIVATE)
+    val obj = JSONObject(prefs.getString("watch_progress", "{}") ?: "{}")
+    val out = mutableMapOf<String, Long>()
+    val keys = obj.keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        val value = obj.optLong(key, 0L)
+        if (value > 0L) out[key] = value
+    }
+    out
+}.getOrDefault(emptyMap())
+
+private fun persistWatchProgress(context: Context, progress: Map<String, Long>) {
+    val obj = JSONObject()
+    progress.forEach { (id, position) -> if (position > 0L) obj.put(id, position) }
+    context.getSharedPreferences("aaii_cinema_v1", Context.MODE_PRIVATE)
+        .edit().putString("watch_progress", obj.toString()).apply()
+}
+
 private fun persistTelegramLinks(context: Context, links: List<CinemaItem>) {
     val arr = JSONArray()
     links.forEach { item ->
@@ -338,6 +380,12 @@ private fun CinemaApp() {
     val saved = remember {
         mutableStateListOf<String>().apply { addAll(prefs.getStringSet("saved", emptySet()).orEmpty()) }
     }
+    val recentIds = remember { mutableStateListOf<String>().apply { addAll(readRecentIds(context)) } }
+    val watchProgress = remember { mutableStateMapOf<String, Long>().apply { putAll(readWatchProgress(context)) } }
+    val favoriteGenres = remember {
+        mutableStateListOf<String>().apply { addAll(prefs.getStringSet("favorite_genres", emptySet()).orEmpty()) }
+    }
+    val availableGenres = remember(catalog) { catalog.map { it.genre }.distinct().filter { it.isNotBlank() }.sorted() }
     var tab by remember { mutableStateOf("Home") }
     var preferMyanmar by remember { mutableStateOf(prefs.getBoolean("preferMyanmar", true)) }
     var query by remember { mutableStateOf("") }
@@ -375,7 +423,30 @@ private fun CinemaApp() {
         if (saved.contains(item.id)) saved.remove(item.id) else saved.add(item.id)
         prefs.edit().putStringSet("saved", saved.toSet()).apply()
     }
+    fun recordRecent(item: CinemaItem) {
+        recentIds.remove(item.id)
+        recentIds.add(0, item.id)
+        while (recentIds.size > 12) recentIds.removeAt(recentIds.lastIndex)
+        persistRecentIds(context, recentIds)
+    }
+    fun openDetail(item: CinemaItem) {
+        recordRecent(item)
+        detail = item
+    }
+    fun toggleFavoriteGenre(value: String) {
+        if (favoriteGenres.contains(value)) favoriteGenres.remove(value) else favoriteGenres.add(value)
+        prefs.edit().putStringSet("favorite_genres", favoriteGenres.toSet()).apply()
+    }
+    fun updateWatchProgress(item: CinemaItem, positionMs: Long, durationMs: Long) {
+        if (durationMs > 0L && positionMs > 10_000L && positionMs < durationMs - 10_000L) {
+            watchProgress[item.id] = positionMs
+        } else if (durationMs > 0L && positionMs >= durationMs - 10_000L) {
+            watchProgress.remove(item.id)
+        }
+        persistWatchProgress(context, watchProgress.toMap())
+    }
     fun play(item: CinemaItem) {
+        recordRecent(item)
         if (item.kind == "stream") playing = item else openOfficial(context, item.url)
         detail = null
     }
@@ -385,7 +456,13 @@ private fun CinemaApp() {
         tab = "Home"; query = ""; genre = "All"
     }
     if (playing != null) {
-        PlayerScreen(playing!!, onBack = { playing = null })
+        val currentItem = playing!!
+        PlayerScreen(
+            item = currentItem,
+            initialPositionMs = watchProgress[currentItem.id] ?: 0L,
+            onProgress = { position, duration -> updateWatchProgress(currentItem, position, duration) },
+            onBack = { playing = null }
+        )
         return
     }
 
@@ -442,7 +519,7 @@ private fun CinemaApp() {
                     IconButton(onClick = { tab = "Search"; query = ""; genre = "All" }) {
                         Icon(Icons.Filled.Search, contentDescription = "Open Search", tint = fg)
                     }
-                    Text("V2.3", color = gold, fontSize = 10.sp)
+                    Text("V2.4", color = gold, fontSize = 10.sp)
                 }
             }
 
@@ -452,9 +529,13 @@ private fun CinemaApp() {
                     tab = parts.first(); query = ""; genre = parts.getOrNull(1) ?: "All"
                 })
             } else if (tab == "Profile") {
-                ProfileNativeScreen(saved.size, catalog.size, preferMyanmar,
+                ProfileNativeScreen(
+                    savedCount = saved.size, itemCount = catalog.size, preferMyanmar = preferMyanmar,
+                    favoriteGenres = favoriteGenres.toList(), availableGenres = availableGenres,
+                    onToggleGenre = ::toggleFavoriteGenre,
                     onLang = { preferMyanmar = it; prefs.edit().putBoolean("preferMyanmar", it).apply() },
-                    onSaved = { tab = "Saved" })
+                    onSaved = { tab = "Saved" }
+                )
             } else {
             OutlinedTextField(
                 value = query, onValueChange = { query = it }, singleLine = true,
@@ -575,7 +656,7 @@ private fun CinemaApp() {
                                 pair.forEach { item ->
                                     Box(Modifier.weight(1f)) {
                                         Poster(item, saved.contains(item.id),
-                                            onClick = { detail = item },
+                                            onClick = { openDetail(item) },
                                             onSave = { toggle(item) })
                                     }
                                 }
@@ -585,6 +666,8 @@ private fun CinemaApp() {
                     }
                 }
             } else {
+                val recentlyViewed = recentIds.mapNotNull { id -> catalog.firstOrNull { it.id == id } }
+                val continueWatching = recentlyViewed.filter { it.kind == "stream" && (watchProgress[it.id] ?: 0L) > 0L }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 25.dp),
@@ -596,16 +679,25 @@ private fun CinemaApp() {
                             onLive = { tab = "Live TV" }
                         )
                     }
-                    item { HomeRail("မြန်မာရုပ်ရှင်နှင့် Recap Channels", catalog.filter { it.genre == "Myanmar" || it.genre == "Myanmar Recaps" }, saved, { detail = it }, ::toggle) }
-                    item { HomeRail("LIVE TV · Official Channels", catalog.filter { it.category == "Live TV" }, saved, { detail = it }, ::toggle) }
-                    item { HomeRail("Short Films & Movie Recaps", catalog.filter { it.category == "Shorts" }, saved, { detail = it }, ::toggle) }
-                    item { HomeRail("Discovery • History • Nature", catalog.filter { it.category == "YouTube" }, saved, { detail = it }, ::toggle) }
-                    if (catalog.any { it.category == "Telegram" }) {
-                        item { HomeRail("Korea Series · Telegram References", catalog.filter { it.category == "Telegram" && it.genre == "Korea Series" }.take(14), saved, { detail = it }, ::toggle) }
-                        item { HomeRail("English Series · Telegram References", catalog.filter { it.category == "Telegram" && it.genre == "English Series" }.take(14), saved, { detail = it }, ::toggle) }
-                        item { HomeRail("Japan Series · Telegram References", catalog.filter { it.category == "Telegram" && it.genre == "Japan Series" }.take(14), saved, { detail = it }, ::toggle) }
+                    item { FavoriteGenreRail(availableGenres, favoriteGenres.toList(), ::toggleFavoriteGenre) }
+                    if (continueWatching.isNotEmpty()) {
+                        item { HomeRail("Continue Watching · ဆက်လက်ကြည့်ရန်", continueWatching, saved, { openDetail(it) }, ::toggle) }
+                    } else {
+                        item { ContinueWatchingEmpty() }
                     }
-                    item { HomeRail("Open Films & Player Test", catalog.filter { it.category == "Movies" && it.genre != "Myanmar" }, saved, { detail = it }, ::toggle) }
+                    if (recentlyViewed.isNotEmpty()) {
+                        item { HomeRail("Recently Viewed · မကြာသေးမီက ကြည့်ခဲ့သည်", recentlyViewed, saved, { openDetail(it) }, ::toggle) }
+                    }
+                    item { HomeRail("မြန်မာရုပ်ရှင်နှင့် Recap Channels", catalog.filter { it.genre == "Myanmar" || it.genre == "Myanmar Recaps" }, saved, { openDetail(it) }, ::toggle) }
+                    item { HomeRail("LIVE TV · Official Channels", catalog.filter { it.category == "Live TV" }, saved, { openDetail(it) }, ::toggle) }
+                    item { HomeRail("Short Films & Movie Recaps", catalog.filter { it.category == "Shorts" }, saved, { openDetail(it) }, ::toggle) }
+                    item { HomeRail("Discovery • History • Nature", catalog.filter { it.category == "YouTube" }, saved, { openDetail(it) }, ::toggle) }
+                    if (catalog.any { it.category == "Telegram" }) {
+                        item { HomeRail("Korea Series · Telegram References", catalog.filter { it.category == "Telegram" && it.genre == "Korea Series" }.take(14), saved, { openDetail(it) }, ::toggle) }
+                        item { HomeRail("English Series · Telegram References", catalog.filter { it.category == "Telegram" && it.genre == "English Series" }.take(14), saved, { openDetail(it) }, ::toggle) }
+                        item { HomeRail("Japan Series · Telegram References", catalog.filter { it.category == "Telegram" && it.genre == "Japan Series" }.take(14), saved, { openDetail(it) }, ::toggle) }
+                    }
+                    item { HomeRail("Open Films & Player Test", catalog.filter { it.category == "Movies" && it.genre != "Myanmar" }, saved, { openDetail(it) }, ::toggle) }
                     item {
                         Text("All video rights belong to their respective creators. TV/YouTube entries open official source pages. In-app playback is for licensed streams only.",
                             color = muted, fontSize = 11.sp, lineHeight = 17.sp,
@@ -623,17 +715,27 @@ private fun CinemaApp() {
                     .background(Color(0xFF1D1D29)).padding(20.dp)
             ) {
                 Box(
-                    Modifier.fillMaxWidth().height(118.dp)
+                    Modifier.fillMaxWidth().height(168.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Brush.linearGradient(listOf(accent(item.accent), surface))),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Filled.PlayCircle, null, modifier = Modifier.size(60.dp), tint = Color.White.copy(alpha = .85f)) }
+                ) {
+                    if (!item.posterUrl.isNullOrBlank()) {
+                        AsyncImage(model = item.posterUrl, contentDescription = item.title,
+                            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.cinema_logo), error = painterResource(R.drawable.cinema_logo))
+                    } else {
+                        Icon(Icons.Filled.PlayCircle, null, modifier = Modifier.size(60.dp), tint = Color.White.copy(alpha = .85f))
+                    }
+                }
                 Spacer(Modifier.height(16.dp))
                 Text(item.title, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp)
                 Spacer(Modifier.height(7.dp))
                 Text(item.subtitle, color = muted, fontSize = 13.sp, lineHeight = 21.sp)
                 Spacer(Modifier.height(12.dp))
                 Text("${item.genre}  ·  ${item.language}  ·  ${item.badge}", color = red, fontSize = 11.sp)
+                item.year?.let { Text("Year · $it", color = muted, fontSize = 11.sp) }
+                item.credits?.let { Text("Credits · $it", color = muted, fontSize = 11.sp) }
                 Spacer(Modifier.height(8.dp))
                 Text("Rights / Source: ${item.rights}", color = muted, fontSize = 11.sp)
                 if (item.id.startsWith("hub-")) {
@@ -730,6 +832,42 @@ private fun CinemaApp() {
 }
 
 @Composable
+private fun FavoriteGenreRail(availableGenres: List<String>, favoriteGenres: List<String>, onToggle: (String) -> Unit) {
+    Column {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 19.dp),
+            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Favorite Categories · နှစ်သက်ရာအမျိုးအစား", color = fg, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(favoriteGenres.size.toString() + " saved", color = muted, fontSize = 10.sp)
+        }
+        Spacer(Modifier.height(8.dp))
+        LazyRow(contentPadding = PaddingValues(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            items(availableGenres) { label ->
+                FilterChip(selected = favoriteGenres.contains(label), onClick = { onToggle(label) },
+                    label = { Text(label, fontSize = 10.sp) },
+                    leadingIcon = {
+                        Icon(if (favoriteGenres.contains(label)) Icons.Filled.Star else Icons.Filled.StarBorder,
+                            contentDescription = "Favorite " + label, modifier = Modifier.size(14.dp))
+                    })
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContinueWatchingEmpty() {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).clip(RoundedCornerShape(16.dp))
+        .background(surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.PlayCircle, contentDescription = null, tint = gold)
+            Spacer(Modifier.width(8.dp))
+            Text("Continue Watching", color = fg, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        }
+        Text("Pause a licensed in-app film and your playback position will appear here. External YouTube / Telegram links are not tracked as video playback.",
+            color = muted, fontSize = 11.sp, lineHeight = 16.sp)
+    }
+}
+
+@Composable
 private fun Hero(onExplore: () -> Unit, onLive: () -> Unit) {
     Box(
         Modifier.fillMaxWidth().height(248.dp).padding(horizontal = 18.dp)
@@ -790,40 +928,39 @@ private fun HomeRail(
 @Composable
 private fun Poster(item: CinemaItem, isSaved: Boolean, onClick: () -> Unit, onSave: () -> Unit) {
     Column {
-        Box(
-            Modifier.fillMaxWidth().height(172.dp)
-                .clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick)
-                .background(Brush.linearGradient(listOf(accent(item.accent), Color(0xFF151827))))
-        ) {
-            Icon(
-                when (item.category) {
+        Box(Modifier.fillMaxWidth().height(172.dp).clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .background(Brush.linearGradient(listOf(accent(item.accent), Color(0xFF151827))))) {
+            if (!item.posterUrl.isNullOrBlank()) {
+                AsyncImage(model = item.posterUrl, contentDescription = item.title,
+                    modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.cinema_logo), error = painterResource(R.drawable.cinema_logo))
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
+                    listOf(Color.Black.copy(alpha = .08f), Color.Black.copy(alpha = .78f)))))
+            } else {
+                Icon(when (item.category) {
                     "Live TV" -> Icons.Filled.Tv
                     "Shorts" -> Icons.Filled.SmartDisplay
                     "YouTube" -> Icons.Filled.Public
                     else -> Icons.Filled.Movie
-                }, contentDescription = null,
-                tint = Color.White.copy(alpha = .20f),
-                modifier = Modifier.size(76.dp).align(Alignment.Center)
-            )
-            Text(
-                item.badge.ifBlank { item.genre.uppercase() },
-                color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(Color.Black.copy(alpha = .45f)).padding(horizontal = 7.dp, vertical = 4.dp)
-            )
-            Icon(
-                Icons.Filled.PlayCircle, null, tint = Color.White.copy(alpha = .9f),
-                modifier = Modifier.align(Alignment.BottomStart).padding(10.dp).size(24.dp)
-            )
-            Icon(
-                if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                }, contentDescription = null, tint = Color.White.copy(alpha = .20f),
+                    modifier = Modifier.size(76.dp).align(Alignment.Center))
+            }
+            Text(item.badge.ifBlank { item.genre.uppercase() }, color = Color.White, fontSize = 8.sp,
+                fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
+                    .clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = .45f))
+                    .padding(horizontal = 7.dp, vertical = 4.dp))
+            Icon(Icons.Filled.PlayCircle, null, tint = Color.White.copy(alpha = .9f),
+                modifier = Modifier.align(Alignment.BottomStart).padding(10.dp).size(24.dp))
+            Icon(if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
                 contentDescription = "Save", tint = Color.White,
-                modifier = Modifier.align(Alignment.TopEnd).padding(7.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.Black.copy(alpha = .35f))
-                    .clickable(onClick = onSave).padding(6.dp).size(16.dp)
-            )
+                modifier = Modifier.align(Alignment.TopEnd).padding(7.dp).clip(RoundedCornerShape(24.dp))
+                    .background(Color.Black.copy(alpha = .35f)).clickable(onClick = onSave).padding(6.dp).size(16.dp))
+            if (item.kind == "stream") {
+                Text("PLAY", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp).clip(RoundedCornerShape(5.dp))
+                        .background(red).padding(horizontal = 7.dp, vertical = 4.dp))
+            }
         }
         Spacer(Modifier.height(8.dp))
         Text(item.title, color = fg, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -833,9 +970,18 @@ private fun Poster(item: CinemaItem, isSaved: Boolean, onClick: () -> Unit, onSa
 }
 
 @Composable
-private fun PlayerScreen(item: CinemaItem, onBack: () -> Unit) {
+private fun PlayerScreen(
+    item: CinemaItem,
+    initialPositionMs: Long,
+    onProgress: (Long, Long) -> Unit,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     var playbackError by remember(item.url) { mutableStateOf<String?>(null) }
+    var showSettings by remember(item.id) { mutableStateOf(false) }
+    var subtitleChoice by remember(item.id) { mutableStateOf("Off") }
+    var audioChoice by remember(item.id) { mutableStateOf("Auto") }
+    var resizeMode by remember(item.id) { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
     val player = remember(item.url) {
         ExoPlayer.Builder(context).build().apply {
             addListener(object : Player.Listener {
@@ -845,35 +991,109 @@ private fun PlayerScreen(item: CinemaItem, onBack: () -> Unit) {
             })
             setMediaItem(MediaItem.fromUri(item.url))
             prepare()
+            if (initialPositionMs > 0L) seekTo(initialPositionMs)
             playWhenReady = true
         }
     }
-    DisposableEffect(player) { onDispose { player.pause(); player.release() } }
-    Column(
-        Modifier.fillMaxSize().background(bg).statusBarsPadding().navigationBarsPadding()
-    ) {
-        Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+    LaunchedEffect(player) {
+        while (true) {
+            delay(5_000)
+            onProgress(player.currentPosition, player.duration)
+        }
+    }
+    DisposableEffect(player) {
+        onDispose {
+            onProgress(player.currentPosition, player.duration)
+            player.pause()
+            player.release()
+        }
+    }
+    fun applySubtitle(choice: String) {
+        subtitleChoice = choice
+        val code = when (choice) { "Myanmar" -> "my"; "English" -> "en"; "Japanese" -> "ja"; else -> null }
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, code == null)
+            .apply { if (code != null) setPreferredTextLanguage(code) }.build()
+    }
+    fun applyAudio(choice: String) {
+        audioChoice = choice
+        val code = when (choice) { "Myanmar" -> "my"; "English" -> "en"; "Japanese" -> "ja"; else -> null }
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setPreferredAudioLanguage(code).build()
+    }
+    Column(Modifier.fillMaxSize().background(bg).statusBarsPadding().navigationBarsPadding()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "Back", tint = fg) }
             Spacer(Modifier.width(9.dp))
-            Text(item.title, color = fg, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(Modifier.weight(1f)) {
+                Text(item.title, color = fg, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1)
+                Text("Continue watching · " + item.genre, color = muted, fontSize = 10.sp)
+            }
+            IconButton(onClick = { showSettings = true }) { Icon(Icons.Filled.Settings, "Playback settings", tint = gold) }
         }
         AndroidView(
-            factory = { ctx -> PlayerView(ctx).apply { this.player = player; useController = true } },
-            update = { it.player = player },
+            factory = { ctx -> PlayerView(ctx).apply { this.player = player; useController = true; this.resizeMode = resizeMode } },
+            update = { it.player = player; it.resizeMode = resizeMode },
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)
         )
         if (playbackError != null) {
             Text(playbackError.orEmpty(), color = Color(0xFFFFAAB4), fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
         }
-        Text("LICENSED / CC0 DEMO MEDIA ONLY", color = red, fontSize = 11.sp, modifier = Modifier.padding(20.dp))
-        Text("${item.subtitle}\n${item.rights}", color = muted, fontSize = 13.sp, lineHeight = 22.sp,
-            modifier = Modifier.padding(horizontal = 20.dp))
-        Spacer(Modifier.height(20.dp))
+        Text("LICENSED MEDIA · " + item.rights, color = red, fontSize = 10.sp, lineHeight = 15.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
+        item.credits?.let {
+            Text("Attribution: " + it, color = muted, fontSize = 11.sp, lineHeight = 17.sp,
+                modifier = Modifier.padding(horizontal = 20.dp))
+        }
+        Text(item.subtitle + "\n" + item.rights, color = muted, fontSize = 13.sp, lineHeight = 22.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        Spacer(Modifier.height(14.dp))
         OutlinedButton(onClick = onBack, modifier = Modifier.padding(horizontal = 20.dp)) { Text("Back to Cinema") }
     }
+    if (showSettings) {
+        AlertDialog(
+            onDismissRequest = { showSettings = false },
+            title = { Text("Playback Settings") },
+            text = {
+                Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
+                    Text("Subtitles", color = gold, fontWeight = FontWeight.Bold)
+                    listOf("Off", "Myanmar", "English", "Japanese").forEach { choice ->
+                        Row(Modifier.fillMaxWidth().clickable { applySubtitle(choice) }.padding(vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = subtitleChoice == choice, onClick = { applySubtitle(choice) })
+                            Text(choice, color = fg, fontSize = 13.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text("Audio language", color = gold, fontWeight = FontWeight.Bold)
+                    listOf("Auto", "Myanmar", "English", "Japanese").forEach { choice ->
+                        Row(Modifier.fillMaxWidth().clickable { applyAudio(choice) }.padding(vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = audioChoice == choice, onClick = { applyAudio(choice) })
+                            Text(choice, color = fg, fontSize = 13.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text("Screen ratio", color = gold, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("Fit" to AspectRatioFrameLayout.RESIZE_MODE_FIT,
+                            "Fill" to AspectRatioFrameLayout.RESIZE_MODE_FILL,
+                            "Zoom" to AspectRatioFrameLayout.RESIZE_MODE_ZOOM).forEach { (label, mode) ->
+                            FilterChip(selected = resizeMode == mode, onClick = { resizeMode = mode },
+                                label = { Text(label, fontSize = 11.sp) })
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Subtitle/audio options work when the selected stream contains those tracks.",
+                        color = muted, fontSize = 10.sp, lineHeight = 15.sp)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showSettings = false }) { Text("Done") } }
+        )
+    }
 }
-
 
 // SCREEN 02: Explore — category navigation matching the approved 10-screen concept.
 @Composable
@@ -920,8 +1140,11 @@ private fun ExploreNativeScreen(onChoose: (String) -> Unit) {
 
 // SCREEN 10: Account/Profile. Subscription is visually reserved, not a real paid entitlement.
 @Composable
-private fun ProfileNativeScreen(savedCount: Int, itemCount: Int, preferMyanmar: Boolean,
-    onLang: (Boolean) -> Unit, onSaved: () -> Unit) {
+private fun ProfileNativeScreen(
+    savedCount: Int, itemCount: Int, preferMyanmar: Boolean,
+    favoriteGenres: List<String>, availableGenres: List<String>,
+    onToggleGenre: (String) -> Unit, onLang: (Boolean) -> Unit, onSaved: () -> Unit
+) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("Profile & Settings", color = gold, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
@@ -947,6 +1170,23 @@ private fun ProfileNativeScreen(savedCount: Int, itemCount: Int, preferMyanmar: 
                 Text("Free Preview", color = gold, fontSize = 16.sp)
                 Text("Subscription/payment backend not connected. No purchase is available in this build.",
                     color = muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        item {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(surface).padding(16.dp)) {
+                Text("Favorite Categories", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("အကြိုက်ဆုံးအမျိုးအစားများကို ရွေးချယ်ပါ", color = muted, fontSize = 11.sp)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    items(availableGenres) { label ->
+                        FilterChip(selected = favoriteGenres.contains(label), onClick = { onToggleGenre(label) },
+                            label = { Text(label, fontSize = 10.sp) },
+                            leadingIcon = {
+                                Icon(if (favoriteGenres.contains(label)) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                    contentDescription = null, modifier = Modifier.size(14.dp))
+                            })
+                    }
+                }
             }
         }
         item {
@@ -976,7 +1216,7 @@ private fun ProfileNativeScreen(savedCount: Int, itemCount: Int, preferMyanmar: 
                 Text("External Telegram / YouTube / TV require connectivity. Offline media downloads are not enabled.",
                     color = muted, fontSize = 11.sp)
                 Spacer(Modifier.height(14.dp))
-                Text("AAII CINEMA  V2.2", color = gold, fontSize = 12.sp)
+                Text("AAII CINEMA  V2.4", color = gold, fontSize = 12.sp)
             }
         }
     }

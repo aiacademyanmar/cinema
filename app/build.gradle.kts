@@ -11,8 +11,8 @@ android {
         applicationId = "asia.aaii.cinema"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "2.3"
+        versionCode = 24
+        versionName = "2.4"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -35,4 +35,5 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
     implementation("androidx.media3:media3-ui:1.5.1")
+    implementation("io.coil-kt:coil-compose:2.7.0")
 }

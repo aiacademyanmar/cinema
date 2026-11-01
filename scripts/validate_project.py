@@ -33,20 +33,24 @@ assert len(s)>=1, 'catalog must contain at least one record'
 
 assert len(links)==category['Telegram']
 assert not any('/c/' in r['url'] for r in s if r['category']=='Telegram'), 'private Telegram links must not be bundled'
-assert len(s) >= 16, 'V2.3 source catalog should include expanded channel directory'
+demo = next((r for r in s if r['id']=='open-film-bbb-01'), None)
+assert demo is not None and demo['kind']=='stream', 'licensed demo stream missing'
+assert 'CC BY 3.0' in demo['rights'] and 'Blender Foundation' in demo['credits'], 'demo attribution missing'
+assert all(r.get('posterUrl','').startswith('https://') for r in s), 'poster artwork URL missing'
+assert len(s) >= 16, 'V2.4 source catalog should include expanded channel directory'
 assert not errors,'\n'.join(errors[:25])
 for file in ('app/src/main/AndroidManifest.xml','app/src/main/res/drawable/cinema_logo.xml'):
     ElementTree.parse(root/file)
 for f in ('app/src/main/assets/cinema_mark.b64',):
     assert (root/f).stat().st_size > 1000
 src=(root/'app/src/main/java/asia/aaii/cinema/MainActivity.kt').read_text(encoding='utf-8')
-for x in ('private fun CinemaApp()', '@Composable', 'ExoPlayer.Builder', 'fun toggle(', 'safeTelegramUrl', 'parseTelegramImport(', 'parseCsvRows(', 'rememberLauncherForActivityResult(', 'normalizeSearch(', 'PlayerScreen(', 'ExploreNativeScreen(', 'ProfileNativeScreen(', 'BackHandler('):
+for x in ('private fun CinemaApp()', '@Composable', 'ExoPlayer.Builder', 'fun toggle(', 'safeTelegramUrl', 'parseTelegramImport(', 'parseCsvRows(', 'rememberLauncherForActivityResult(', 'normalizeSearch(', 'readRecentIds(', 'readWatchProgress(', 'persistWatchProgress(', 'FavoriteGenreRail(', 'ContinueWatchingEmpty(', 'AsyncImage(', 'PlayerScreen(', 'initialPositionMs', 'Playback Settings', 'setPreferredTextLanguage', 'RESIZE_MODE_ZOOM', 'ExploreNativeScreen(', 'ProfileNativeScreen(', 'BackHandler('):
     assert x in src, f'missing source feature: {x}'
-assert 'versionName = "2.3"' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
-assert 'versionCode = 23' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
+assert 'versionName = "2.4"' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
+assert 'versionCode = 24' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
 template = (root/'TELEGRAM_IMPORT_TEMPLATE.csv').read_text(encoding='utf-8').splitlines()[0].strip().lower()
 assert template == 'title,url,genre', 'Telegram CSV template header mismatch'
-print('STATIC QA PASSED — V2.3')
+print('STATIC QA PASSED — V2.4')
 print('Total records:',len(s))
 print('Categories:',dict(category))
 print('Unique Telegram reference URLs:',len(links))

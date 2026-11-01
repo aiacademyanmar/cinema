@@ -1,42 +1,35 @@
-# AAII CINEMA — V2.3 QA and Build Status
+# AAII CINEMA V2.4 — QA / Build Report
 
-**Date:** 2026-11-01 (Asia/Yangon)  
-**Package:** `asia.aaii.cinema`  
-**Version:** 2.3 (versionCode 23)  
-**Branch:** `v2.3-development`
+**Date:** 2026-11-01  
+**Version:** 2.4 / versionCode 24  
+**Branch:** v2.4-development
 
-## V2.3 implementation
+## Implemented
+- Coil-powered poster / thumbnail gallery with generic placeholder art.
+- Local Recently Viewed history.
+- Continue Watching for in-app stream entries; playback position persisted every five seconds and restored on resume.
+- Favorite genre/category persistence.
+- Media3 subtitle/audio language preference settings and Fit / Fill / Zoom ratio.
+- Big Buck Bunny sample stream for player/resume QA, with Blender Foundation CC BY 3.0 attribution.
+- Existing V2.3 Telegram CSV/JSON import, Unicode search and external-link safety retained.
 
-- Retained the V2.2 native Compose theme, branding, home layout and fixed six-item footer.
-- Expanded the curated YouTube / short-film directory from 10 to 17 entries.
-- Added Android document-picker import for CSV and JSON public Telegram references.
-- Added duplicate detection, a 500-record per-file cap, a 1 MB file-size cap, and rejected / duplicate / imported counts.
-- Private `t.me/c/` and Telegram invite links remain excluded.
-- Improved Unicode-normalized multi-term search over title, subtitle, genre, language and category.
-- Updated Android version to 2.3 / versionCode 23 and CI artifact labels.
-
-## Source audit
-
-The user-supplied Movie Channel Hub HTML rechecked for this release contains 372 Telegram URL fields: 369 private `t.me/c/` URL records (367 unique private URLs), 3 malformed / placeholder values, and no valid public Telegram channel links. None were imported into the app catalog.
-
-The previously referenced larger archive is not merged into this repository branch; this release does not claim that all archive records are present.
+## Content notes
+- 18 built-in catalog records.
+- One built-in native stream: Big Buck Bunny (CC BY 3.0; attribution required; retain full credits).
+- Remaining YouTube / TV / Telegram records are external references only.
+- Generic Unsplash images are placeholders, not official posters.
 
 ## Static QA
+- Catalog JSON schema / unique IDs / HTTPS URLs.
+- All catalog entries include a poster artwork URL.
+- Big Buck Bunny stream attribution present.
+- Private Telegram path exclusion.
+- Kotlin feature marker checks.
+- Android XML parsing.
+- Version name / code checks.
 
-- Catalog schema, unique IDs, HTTPS URLs and source-policy checks.
-- No private Telegram path in bundled catalog.
-- Import helper markers and CSV template header.
-- Android manifest and vector XML parse.
-- Brand image source retained.
-
-## Pending verification
-
-- GitHub Actions Gradle compilation for this branch.
-- APK SHA-256 and artifact publication.
-- Samsung install and runtime QA (not possible from repository source alone).
-- Real CSV / JSON import on a phone, including private-link rejection.
-- Burmese / English search, 360dp and 412dp layout, navigation and persistence.
-
-## GitHub
-
-`https://github.com/aiacademyanmar/cinema/tree/v2.3-development`
+## Pending
+- Gradle compile on GitHub Actions.
+- APK artifact / SHA256 verification.
+- Samsung install, layout, player resume, track settings and persistence tests.
+- Poster URL availability on a real device.

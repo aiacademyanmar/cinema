@@ -11,7 +11,8 @@
     "badge": "FEATURED",
     "language": "English",
     "rights": "External source only; playback rights not verified",
-    "featured": true
+    "featured": true,
+    "posterUrl": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=640&q=82"
   },
   {
     "id": "demo-movie-02",
@@ -25,7 +26,8 @@
     "badge": "MYANMAR",
     "language": "မြန်မာ",
     "rights": "External source only",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=640&q=82"
   },
   {
     "id": "demo-tv-01",
@@ -39,7 +41,8 @@
     "badge": "TV",
     "language": "မြန်မာ",
     "rights": "External portal; live stream not verified",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=640&q=82"
   },
   {
     "id": "demo-tv-02",
@@ -53,7 +56,8 @@
     "badge": "TV",
     "language": "English",
     "rights": "External portal; live stream not verified",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=640&q=82"
   },
   {
     "id": "demo-youtube-01",
@@ -67,7 +71,8 @@
     "badge": "DOCU",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=640&q=82"
   },
   {
     "id": "demo-youtube-02",
@@ -81,7 +86,8 @@
     "badge": "DISCOVERY",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=640&q=82"
   },
   {
     "id": "demo-youtube-03",
@@ -95,7 +101,8 @@
     "badge": "HISTORY",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=640&q=82"
   },
   {
     "id": "demo-youtube-04",
@@ -109,7 +116,8 @@
     "badge": "NATURE",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=640&q=82"
   },
   {
     "id": "demo-short-01",
@@ -123,7 +131,8 @@
     "badge": "SHORTS",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=640&q=82"
   },
   {
     "id": "demo-short-02",
@@ -137,7 +146,8 @@
     "badge": "SHORTS",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=640&q=82"
   },
   {
     "id": "demo-youtube-05",
@@ -151,7 +161,8 @@
     "badge": "NATGEO",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=640&q=82"
   },
   {
     "id": "demo-youtube-06",
@@ -165,7 +176,8 @@
     "badge": "DOCU",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=640&q=82"
   },
   {
     "id": "demo-youtube-07",
@@ -179,7 +191,8 @@
     "badge": "SCIENCE",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=640&q=82"
   },
   {
     "id": "demo-youtube-08",
@@ -193,7 +206,8 @@
     "badge": "SCI-FI",
     "language": "English",
     "rights": "Official channel link",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=640&q=82"
   },
   {
     "id": "demo-youtube-09",
@@ -207,7 +221,8 @@
     "badge": "RECAP",
     "language": "မြန်မာ / English",
     "rights": "Creator channel link; third-party clip rights not verified",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=640&q=82"
   },
   {
     "id": "demo-youtube-10",
@@ -221,7 +236,8 @@
     "badge": "MM RECAP",
     "language": "မြန်မာ",
     "rights": "Creator channel link; third-party clip rights not verified",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=640&q=82"
   },
   {
     "id": "demo-youtube-11",
@@ -235,6 +251,24 @@
     "badge": "MM VIDEO",
     "language": "မြန်မာ",
     "rights": "Creator channel link; third-party clip rights not verified",
-    "featured": false
+    "featured": false,
+    "posterUrl": "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=640&q=82"
+  },
+  {
+    "id": "open-film-bbb-01",
+    "title": "Big Buck Bunny — Open Film",
+    "subtitle": "A Blender Foundation animated short film · about 10 minutes",
+    "category": "Movies",
+    "genre": "Animation",
+    "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "kind": "stream",
+    "accent": "#4A7D59",
+    "badge": "CC BY 3.0",
+    "language": "English · No dialogue",
+    "rights": "© 2008 Blender Foundation / www.bigbuckbunny.org · CC BY 3.0. Attribution required; retain the full film credits.",
+    "featured": true,
+    "posterUrl": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=640&q=82",
+    "year": "2008",
+    "credits": "© copyright 2008, Blender Foundation / www.bigbuckbunny.org"
   }
 ]
