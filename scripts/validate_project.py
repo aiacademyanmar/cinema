@@ -18,7 +18,7 @@ for idx,r in enumerate(s):
     if r['id'] in ids: errors.append(f'{idx}: repeated ID: {r["id"]}')
     ids.add(r['id'])
     if not isinstance(r['featured'],bool): errors.append(f'{idx}: featured must be boolean')
-    if r['kind'] not in ('link','stream','youtube'): errors.append(f'{idx}: bad kind {r["kind"]}')
+    if r['kind'] not in ('link','stream','youtube','playlist_search'): errors.append(f'{idx}: bad kind {r["kind"]}')
     parsed=urlparse(r['url'])
     if parsed.scheme!='https' or not parsed.netloc: errors.append(f'{idx}: invalid HTTPS URL')
     if r['kind']=='youtube':
@@ -26,6 +26,9 @@ for idx,r in enumerate(s):
         if r.get('channelUrl','').startswith('https://www.youtube.com/') is False: errors.append(f'{idx}: YouTube channel URL missing')
         if r['category'] not in ('YouTube','Shorts'): errors.append(f'{idx}: YouTube embedded item must be in YouTube or Shorts category')
         if 'YouTube' not in r['rights']: errors.append(f'{idx}: YouTube rights/source note missing')
+    if r['kind']=='playlist_search':
+        if parsed.netloc != 'www.youtube.com' or parsed.path != '/results': errors.append(f'{idx}: invalid YouTube playlist discovery URL')
+        if r.get('playlistStatus') != 'discovery_search': errors.append(f'{idx}: search must be labeled discovery_search')
     if r['category']=='Telegram':
         if parsed.netloc not in ('t.me','telegram.me'): errors.append(f'{idx}: unsupported Telegram host')
         if r['url'] in links: errors.append(f'{idx}: duplicate Telegram link')
@@ -42,7 +45,11 @@ demo = next((r for r in s if r['id']=='open-film-bbb-01'), None)
 assert demo is not None and demo['kind']=='stream', 'licensed demo stream missing'
 assert 'CC BY 3.0' in demo['rights'] and 'Blender Foundation' in demo['credits'], 'demo attribution missing'
 assert all(r.get('posterUrl','').startswith('https://') for r in s), 'poster artwork URL missing'
-assert len(s) >= 16, 'V2.5 source catalog should include expanded channel directory'
+assert len(s) >= 120, 'V2.7 catalog should include 100 playlist/discovery records'
+playlist_items=[r for r in s if r['id'].startswith('ytplaylist-')]
+assert len(playlist_items)==100, f'Expected 100 playlist collection records, got {len(playlist_items)}'
+assert len([r for r in playlist_items if r.get('playlistStatus')=='linked_unverified'])==20, 'Expected 20 sourced playlist URLs'
+assert len([r for r in playlist_items if r.get('playlistStatus')=='discovery_search'])==80, 'Expected 80 clearly labeled playlist discovery searches'
 assert not errors,'\n'.join(errors[:25])
 for file in ('app/src/main/AndroidManifest.xml','app/src/main/res/drawable/cinema_logo.xml'):
     ElementTree.parse(root/file)
@@ -51,11 +58,11 @@ for f in ('app/src/main/assets/cinema_mark.b64',):
 src=(root/'app/src/main/java/asia/aaii/cinema/MainActivity.kt').read_text(encoding='utf-8')
 for x in ('private fun CinemaApp()', '@Composable', 'ExoPlayer.Builder', 'fun toggle(', 'safeTelegramUrl', 'parseTelegramImport(', 'parseCsvRows(', 'rememberLauncherForActivityResult(', 'normalizeSearch(', 'readRecentIds(', 'readWatchProgress(', 'persistWatchProgress(', 'FavoriteGenreRail(', 'ContinueWatchingEmpty(', 'AsyncImage(', 'PlayerScreen(', 'initialPositionMs', 'Playback Settings', 'Retry Playback', 'setPlaybackSpeed(', 'LifecycleEventObserver', 'YouTubePlayerScreen(', 'cc_lang_pref', 'cc_load_policy', 'safeYouTubeEmbedUrl', 'setPreferredTextLanguage', 'RESIZE_MODE_ZOOM', 'ExploreNativeScreen(', 'ProfileNativeScreen(', 'BackHandler('):
     assert x in src, f'missing source feature: {x}'
-assert 'versionName = "2.6"' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
-assert 'versionCode = 26' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
+assert 'versionName = "2.7"' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
+assert 'versionCode = 27' in (root/'app/build.gradle.kts').read_text(encoding='utf-8')
 template = (root/'TELEGRAM_IMPORT_TEMPLATE.csv').read_text(encoding='utf-8').splitlines()[0].strip().lower()
 assert template == 'title,url,genre', 'Telegram CSV template header mismatch'
-print('STATIC QA PASSED — V2.6')
+print('STATIC QA PASSED — V2.7')
 print('Total records:',len(s))
 print('Categories:',dict(category))
 print('Unique Telegram reference URLs:',len(links))
