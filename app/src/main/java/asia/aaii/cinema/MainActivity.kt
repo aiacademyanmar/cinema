@@ -353,8 +353,8 @@ private fun safeYouTubeEmbedUrl(value: String): String? = runCatching {
         uri.path != "/embed") return@runCatching null
     val listType = uri.getQueryParameter("listType")
     val list = uri.getQueryParameter("list")
-    if (listType !in setOf("user_uploads", "playlist") ||
-        list.isNullOrBlank() || !Regex("[A-Za-z0-9_-]{3,100}").matches(list)) return@runCatching null
+    if (listType != "playlist" ||
+        list.isNullOrBlank() || !Regex("PL[A-Za-z0-9_-]{3,100}").matches(list)) return@runCatching null
     Uri.parse("https://www.youtube.com/embed").buildUpon()
         .appendQueryParameter("listType", listType)
         .appendQueryParameter("list", list)
@@ -666,7 +666,7 @@ private fun CinemaApp() {
                                 "Movies" -> "ရုပ်ရှင်နှင့် ဇာတ်လမ်းတွဲများ"
                                 "Live TV" -> "TV Channel Directory"
                                 "Shorts" -> "Short Films & Movie Recap"
-                                "YouTube" -> "Documentary • Discovery • History"
+                                "YouTube" -> "YouTube Playlists · Movie Recap · Learning · History · Sports"
                                 "Telegram" -> "Telegram Series & Channel References"
                                 "Saved" -> "ကျွန်ုပ်၏ စာရင်း"
                                 "Search" -> "Movie & Channel Search"
@@ -1034,7 +1034,7 @@ referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body
             webViewClient = WebViewClient()
             if (html != null) {
                 // The host matches this Android application's applicationId for YouTube player identification.
-                loadDataWithBaseURL("https://asia.aaii.cinema/", html, "text/html", "UTF-8", null)
+                loadDataWithBaseURL("https://aaii.asia/", html, "text/html", "UTF-8", null)
             }
         }
     }
@@ -1084,7 +1084,7 @@ referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body
         OutlinedButton(onClick = onOpenChannel, modifier = Modifier.padding(horizontal = 18.dp).fillMaxWidth()) {
             Icon(Icons.Filled.OpenInNew, null)
             Spacer(Modifier.width(8.dp))
-            Text("Open Official YouTube Channel")
+            Text(if (item.channelUrl?.contains("/playlist?list=") == true) "Open Playlist on YouTube" else "Open Official YouTube Channel")
         }
         Spacer(Modifier.height(8.dp))
         Text("YouTube player controls and branding are provided by YouTube.",
@@ -1261,6 +1261,7 @@ private fun ExploreNativeScreen(onChoose: (String) -> Unit) {
         Triple("YouTube", "YouTube Playlists · 100 Collections", Icons.Filled.SmartDisplay),
         Triple("YouTube:Myanmar Movie Recap", "မြန်မာ Movie Recap", Icons.Filled.Movie),
         Triple("YouTube:Myanmar Learning", "မြန်မာ Learning", Icons.Filled.Lightbulb),
+        Triple("YouTube:English Learning", "English Learning", Icons.Filled.School),
         Triple("YouTube:Sports", "English Sports", Icons.Filled.SportsSoccer),
         Triple("YouTube:Science & Documentary", "Science & Documentary", Icons.Filled.Public),
         Triple("YouTube:Myanmar Drama", "မြန်မာ Drama", Icons.Filled.SmartDisplay),
