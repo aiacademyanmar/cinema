@@ -16,6 +16,11 @@ jobs:
       - name: Checkout Android project
         uses: actions/checkout@v4
 
+      - name: Restore brand images from checked-in Base64 asset
+        run: |
+          base64 --decode app/src/main/res/drawable-nodpi/cinema_mark.b64 > app/src/main/res/drawable-nodpi/cinema_mark.jpg
+          cp app/src/main/res/drawable-nodpi/cinema_mark.jpg app/src/main/res/drawable-nodpi/cinema_banner.jpg
+
       - name: Source and catalog preflight
         run: python3 scripts/validate_project.py
 
